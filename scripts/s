@@ -1,0 +1,4 @@
+#!/bin/bash
+
+PORT=/dev/ttyACM0
+screen -L ${PORT} 115200
