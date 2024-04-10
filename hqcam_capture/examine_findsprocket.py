@@ -47,10 +47,10 @@ def find_zero_rectangle(filename):
 
     return max_rect
 
-filename='frames/20240402_1/findsprocket/clearfilm/198_eroded.png'
+filename='/mnt/projector/20240402_1/capture/00000097_16000.png'
 #examine(filename)
 logger = FakeLogger()
 #print(find_zero_rectangle(filename))
-image = cv2.imread(filename,cv2.IMREAD_GRAYSCALE)
+image = cv2.imread(filename,cv2.IMREAD_ANYCOLOR)
 pdb.set_trace()
-findSprocket(logger, image, show=False,savework=True)
+findSprocket(logger, image,hires=True, show=False,savework=True)

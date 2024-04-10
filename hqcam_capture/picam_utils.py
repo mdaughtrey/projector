@@ -1,11 +1,17 @@
 import cv2
-from libcamera import Transform
+try:
+    from libcamera import Transform
+except:
+    print("No libcamera library found")
 import logging
 from logging import FileHandler, StreamHandler
 from matplotlib import pyplot as plt
 import numpy as np
 import pdb
-from picamera2 import Picamera2, Preview
+try:
+    from picamera2 import Picamera2, Preview
+except:
+    print("No picamera library found")
 from scipy import ndimage
 import sys
 import time
@@ -141,7 +147,10 @@ def findSprocket(logger, image, hires=False, show=False,savework=False):
 
     # Get the bounding box of the largest contour
     cx, cy, cw, ch = cv2.boundingRect(contour)
-    cy += int(origy/3)
+    if hires:
+        cy += int(origy/4)
+    else:
+        cy += int(origy/3)
 
     # Print the size and location of the white square
     logger.debug(f'White square size: {cw}x{ch} pixels')
