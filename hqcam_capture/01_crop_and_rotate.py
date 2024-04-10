@@ -107,7 +107,7 @@ def main():
             writeto = writepath + '/' + filename
             #writeto = realpath + '/' +  os.path.splitext(os.path.basename(regfile))[0] + '.png'
             logger.info(f'{filename}')
-            if not os.path.exists(writeto):
+            if not os.path.exists(writeto) | 0 == os.path.getsize(writeto):
                 try:
                     cropAndRotate(leftX, centerY, readfrom, writeto)
                 except Exception as ee:
