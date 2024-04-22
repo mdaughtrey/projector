@@ -55,7 +55,7 @@ def init_picam(exposure:int) -> dict:
     camera['picam'].start()
     return camera
 
-def waitSprocket(logger, picam, desired:bool, savework:bool) -> None:
+def waitSprocket(logger, picam, film:str, desired:bool, savework:bool) -> None:
 #    global picam
     global count
     start = time.time()
@@ -63,7 +63,7 @@ def waitSprocket(logger, picam, desired:bool, savework:bool) -> None:
         buffer = picam.capture_array("lores")
         count += 1
         logger.debug(str(picam.capture_metadata()))
-        inSprocket = findSprocket(logger, buffer, show = False, savework = savework)[0]
+        inSprocket = findSprocket(logger, buffer, film, show = False, savework = savework)[0]
         logger.debug(f'inSprocket {inSprocket}, need {str(desired)}')
         if desired == inSprocket:
             return
@@ -73,19 +73,25 @@ def inccount():
     global count
     count += 1
 
-def findSprocket(logger, image, hires=False, show=False,savework=False):
+def findSprocket(logger, image, film:str, hires=False, show=False,savework=False):
     logger.debug(count)
     origy,origx = image.shape[:2]
     if show:
         plt.imshow(image)
         plt.title('Input Image')
         plt.show()
-#    if savework:
-#        cv2.imwrite(f'/tmp/{count}_input.png', image)
-    if hires:
-        image = image[int(origy/4):origy-int(origy/4),0:int(origx/5)]
+
+    if 'super8' == film:
+        if hires:
+            image = image[int(origy/4):origy-int(origy/4),0:int(origx/5)]
+        else:
+            image = image[int(origy/3):origy-int(origy/3),0:int(origx/5)]
     else:
-        image = image[int(origy/3):origy-int(origy/3),0:int(origx/5)]
+        if hires:
+            image = image[0:int(origy/4),0:int(origx/5)]
+        else:
+            image = image[0:int(origy/3),0:int(origx/5)]
+
     if show:
         plt.imshow(image)
         plt.title('Sliced')

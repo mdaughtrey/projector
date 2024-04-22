@@ -6,7 +6,7 @@
 # 3. 8mm or S8
 
 PORT=/dev/ttyACM0
-PROJECT=20240402_1
+PROJECT=20240421_8mm
 FRAMES=${PWD}/frames/
 FP=${FRAMES}/${PROJECT}
 DEVICE=/dev/video0
@@ -34,8 +34,14 @@ getcamdev()
 
 s8()
 {
-    ./picam_cap.py framecap --framesto ${FP}/capture --frames 10 --logfile picam_cap.log \
-        --film super8 --exposure ${EXPOSURES} --startdia 57 --enddia 33 --camsprocket
+    ./picam_cap.py framecap --framesto ${FP}/capture --frames 3600 --logfile picam_cap.log \
+        --film super8 --exposure ${EXPOSURES} --startdia 57 --enddia 33
+}
+
+mm8()
+{
+    ./picam_cap.py framecap --framesto ${FP}/capture --frames 3800 --logfile picam_cap.log \
+        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33
 }
 
 sertest()
@@ -221,7 +227,15 @@ case "$1" in
     getdev) getdev ;;
     clip) clip ;;
     descratch) descratch ;;
-    8mm) do8mm; preview ;;
+    8mm) 
+        rm frames/${PROJECT}/findsprocket/*.png
+#        rm frames/${PROJECT}/capture/*.png
+        rm *.log
+        mm8
+        echo s > ${PORT}
+        mv /tmp/*.png /media/frames/${PROJECT}/findsprocket/
+        ;;
+
     s8) 
         rm frames/${PROJECT}/findsprocket/*.png
 #        rm frames/${PROJECT}/capture/*.png

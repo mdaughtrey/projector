@@ -118,7 +118,7 @@ def pcl_framecap():
     parser.add_argument('--serdev', dest='serdev', default='/dev/ttyACM0', help='Serial device')
     parser.add_argument('--exposure', dest='exposure', help='EDR exposure a,b,[c,..]')
     parser.add_argument('--startdia', dest='startdia', type=int, default=62, help='Feed spool starting diameter (mm)')
-    parser.add_argument('--camsprocket', dest='camsprocket', action='store_true', help='Use in-camera sprocket detection')
+#    parser.add_argument('--camsprocket', dest='camsprocket', action='store_true', help='Use in-camera sprocket detection')
     return parser.parse_args()
 
 def pcl_exptest():
@@ -164,9 +164,8 @@ def serwaitfor(text1, text2):
 
 
 def init_framecap(config):
-    if config.camsprocket:
-        global camera
-        camera = init_picam(int(config.exposure.split(',')[0]))['picam']
+    global camera
+    camera = init_picam(int(config.exposure.split(',')[0]))['picam']
 
     if config.showwork and not os.path.exists(workdir:='{}/work'.format(config.framesto)):
         os.mkdir(workdir)
@@ -289,7 +288,7 @@ def setExposure(exposure):
 #            return
 #    raise RuntimeError('timeout')
 
-def framecap_camsprocket(config):
+def framecap(config):
     startframe = get_most_recent_frame(config) + 1
     exposures = list(map(int, config.exposure.split(',')))
 #    init_picam()
@@ -298,7 +297,11 @@ def framecap_camsprocket(config):
     count = 0
     for framenum in range(config.frames):
         global lastTension
-        lastTension = tension[framenum+startframe]
+        try:
+            lastTension = tension[framenum+startframe]
+        except:
+            lastTension = tension[-1]
+
         logger.info(f'Tension {lastTension}')
         serwrite(str(lastTension).encode() + b't')
         #setExposure(picam, exposures[0])
@@ -307,8 +310,8 @@ def framecap_camsprocket(config):
 
     #    picam.switch_mode('exp0')
         try:
-            waitSprocket(logger, camera, desired = False, savework = False)
-            waitSprocket(logger, camera, desired = True, savework = False)
+            waitSprocket(logger, camera, config.film, desired = False, savework = False)
+            waitSprocket(logger, camera, config.film, desired = True, savework = False)
 
         except RuntimeError as rte:
             logger.error(str(rte))
@@ -377,10 +380,7 @@ def main():
 
     if 'exptest' == config.do: exptest(config)
     if 'framecap' == config.do:
-        if config.camsprocket:
-            framecap_camsprocket(config)
-        else:
-            framecap(config)
+        framecap(config)
 
     if 'tonefuse' == config.do: tonefuse(config)
 
