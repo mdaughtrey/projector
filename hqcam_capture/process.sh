@@ -6,7 +6,7 @@
 # 3. 8mm or S8
 
 PORT=/dev/ttyACM0
-PROJECT=20240421_8mm
+PROJECT=20240422_2
 FRAMES=${PWD}/frames/
 FP=${FRAMES}/${PROJECT}
 DEVICE=/dev/video0
@@ -40,7 +40,7 @@ s8()
 
 mm8()
 {
-    ./picam_cap.py framecap --framesto ${FP}/capture --frames 3800 --logfile picam_cap.log \
+    ./picam_cap.py framecap --framesto ${FP}/capture --frames 4000 --logfile picam_cap.log \
         --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33
 }
 
@@ -228,7 +228,7 @@ case "$1" in
     clip) clip ;;
     descratch) descratch ;;
     8mm) 
-        rm frames/${PROJECT}/findsprocket/*.png
+#        rm frames/${PROJECT}/findsprocket/*.png
 #        rm frames/${PROJECT}/capture/*.png
         rm *.log
         mm8

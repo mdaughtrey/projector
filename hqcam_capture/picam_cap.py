@@ -234,33 +234,33 @@ def get_most_recent_frame(config):
     return frame
 
 
-def framecap(config):
-    startframe = get_most_recent_frame(config)
-
-    for framenum in range(config.frames):
-        global lastTension
-        lastTension = tension[framenum+startframe]
-        logger.info(f'Tension {lastTension}')
-        serwrite(str(lastTension).encode())
-        serwrite(b'n')
-        wait = serwaitfor(b'{HDONE}', b'{NTO}')
-        if wait[0]:
-            logger.error(wait[2])
-            continue
-
-        frames = []
-        for exp in config.exposure.split(','):
-            try:
-                target = f'{config.framesto}/{startframe+framenum:>08}_{exp}.png'
-                command=f'rpicam-still -n --hflip=1 --immediate --width=2304 --height=1296 -e png --awb=indoor --shutter {exp} --output {target}'
-                #command=f'rpicam-still -n --hflip=1 --immediate --width=640 --height=480 -e png --awb=indoor --shutter {exp} --output {target}'
-                logger.debug(command)
-                rc = subprocess.run(command.split())
-            except Exception as ee:
-                logger.error(f'capture failed {str(ee)}')
-                break
-    serwrite(b' ')
-
+#def framecap(config):
+#    startframe = get_most_recent_frame(config)
+#
+#    for framenum in range(config.frames):
+#        global lastTension
+#        lastTension = tension[framenum+startframe]
+#        logger.info(f'Tension {lastTension}')
+#        serwrite(str(lastTension).encode())
+#        serwrite(b'n')
+#        wait = serwaitfor(b'{HDONE}', b'{NTO}')
+#        if wait[0]:
+#            logger.error(wait[2])
+#            continue
+#
+#        frames = []
+#        for exp in config.exposure.split(','):
+#            try:
+#                target = f'{config.framesto}/{startframe+framenum:>08}_{exp}.png'
+#                command=f'rpicam-still -n --hflip=1 --immediate --width=2304 --height=1296 -e png --awb=indoor --shutter {exp} --output {target}'
+#                #command=f'rpicam-still -n --hflip=1 --immediate --width=640 --height=480 -e png --awb=indoor --shutter {exp} --output {target}'
+#                logger.debug(command)
+#                rc = subprocess.run(command.split())
+#            except Exception as ee:
+#                logger.error(f'capture failed {str(ee)}')
+#                break
+#    serwrite(b' ')
+#
 
 def setExposure(exposure):
     global camera

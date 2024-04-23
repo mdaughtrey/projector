@@ -63,7 +63,10 @@ def waitSprocket(logger, picam, film:str, desired:bool, savework:bool) -> None:
         buffer = picam.capture_array("lores")
         count += 1
         logger.debug(str(picam.capture_metadata()))
-        inSprocket = findSprocket(logger, buffer, film, show = False, savework = savework)[0]
+        if 'super8' == film:
+            inSprocket = findSprocketS8(logger, buffer, savework = savework)[0]
+        else:
+            inSprocket = findSprocket8mm(logger, buffer, savework = savework)[0]
         logger.debug(f'inSprocket {inSprocket}, need {str(desired)}')
         if desired == inSprocket:
             return
@@ -73,53 +76,110 @@ def inccount():
     global count
     count += 1
 
-def findSprocket(logger, image, film:str, hires=False, show=False,savework=False):
+def findSprocket8mm(logger, image, hires=False, savework=False):
     logger.debug(count)
     origy,origx = image.shape[:2]
-    if show:
-        plt.imshow(image)
-        plt.title('Input Image')
-        plt.show()
 
-    if 'super8' == film:
-        if hires:
-            image = image[int(origy/4):origy-int(origy/4),0:int(origx/5)]
-        else:
-            image = image[int(origy/3):origy-int(origy/3),0:int(origx/5)]
+    xOffset = 50
+
+    if hires:
+        image = image[0:int(origy/4),0:int(origx/4)]
     else:
-        if hires:
-            image = image[0:int(origy/4),0:int(origx/5)]
-        else:
-            image = image[0:int(origy/3),0:int(origx/5)]
+        image = image[0:int(origy/3), xOffset:xOffset + int(origx/4)]
 
-    if show:
-        plt.imshow(image)
-        plt.title('Sliced')
-        plt.show()
-#    if savework:
-#        cv2.imwrite(f'/tmp/{count}_sliced.png', image)
+    if savework:
+        cv2.imwrite(f'/tmp/{count}_sliced.png', image)
+
+
     image2 = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     image3 = np.asarray(image2, dtype=np.uint8)
     image3 = ndimage.grey_erosion(image3, size=(5,5))
     if savework:
         cv2.imwrite(f'/tmp/{count}_eroded.png', image3)
 
-#    _, image3 = cv2.threshold(image3, 80, 255, cv2.THRESH_BINARY)
     logger.debug(str(image3[80]))
-    #low,high = (140,170)
     low,high = (int(image3.max() * 0.9), image3.max())
     image3[image3<low] = 0
     image3[image3>high] = 0
     image3[image3 != 0] = 255
     if savework: 
         cv2.imwrite(f'/tmp/{count}_threshold.png', image3)
-#    image3[image3 == 255] = 1
-#    image3 = np.where(image3 < 40, 0, np.where(image >= 40, np.where(image3 <= 60, 1, 0), image3))
-#    _, image3 = cv2.t#hreshold(image3, 80, 255, cv2.THRESH_BINARY)
-    if show:
-        plt.imshow(image3,cmap='gray')
-        plt.title('Eroded')
-        plt.show()
+
+    def whtest_lores(contour):
+        (_,_,w,h) = cv2.boundingRect(contour)
+        return (90 < w < 110) & (80 < h < 100)
+
+    def whtest_hires(contour):
+        (_,_,w,h) = cv2.boundingRect(contour)
+        return (144 < w < 216) & (162 < h < 243)
+
+    # Find the contours in the thresholded image
+    contours, _ = cv2.findContours(image3, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    for c in contours:
+        logger.debug('Pre filter Area: ' + str(cv2.contourArea(c)))
+        x, y, width, height = cv2.boundingRect(c)
+        logger.debug(f'x {x} y {y} width {width} height {height}')
+
+
+    if hires:
+        contours = list(filter(whtest_hires, contours))
+    else:
+        contours = list(filter(whtest_lores, contours))
+    logger.debug(f'Found {len(contours)} contours')
+    if 1 != len(contours):
+        return (False, 0, 0, 0, 0)
+
+    for c in contours:
+        logger.debug('Post filter Area: ' + str(cv2.contourArea(c)))
+        x, y, width, height = cv2.boundingRect(c)
+        logger.debug(f'x {x} y {y} width {width} height {height}')
+    contour = contours[0]
+
+    # Get the bounding box of the largest contour
+    cx, cy, cw, ch = cv2.boundingRect(contour)
+    if hires:
+        cy += int(origy/4)
+    else:
+        cy += int(origy/3) + xOffset
+
+    if savework:
+        cv2.rectangle(image3, (cy,cx),(cy+ch,cx+cw), (100,100,100),3)
+        cv2.imwrite(f'/tmp/{count}_rectangle.png', image3)
+#        cv2.drawContours(image3, [contour], -1, (100,100,100), thickness=cv2.FILLED)
+
+    # Print the size and location of the white square
+    logger.debug(f'White square size: {cw}x{ch} pixels')
+    logger.debug(f'White square location: ({cx}, {cy})')
+
+    if savework:
+        cv2.imwrite(f'/tmp/{count}_identified.png', image3)
+
+    return (True, cx, cy, cw, ch)
+
+def findSprocketS8(logger, image, hires=False, savework=False):
+    logger.debug(count)
+    origy,origx = image.shape[:2]
+
+    if hires:
+        image = image[int(origy/4):origy-int(origy/4),0:int(origx/5)]
+    else:
+        image = image[int(origy/3):origy-int(origy/3),0:int(origx/5)]
+
+    if savework:
+        cv2.imwrite(f'/tmp/{count}_sliced.png', image)
+    image2 = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    image3 = np.asarray(image2, dtype=np.uint8)
+    image3 = ndimage.grey_erosion(image3, size=(5,5))
+    if savework:
+        cv2.imwrite(f'/tmp/{count}_eroded.png', image3)
+
+    logger.debug(str(image3[80]))
+    low,high = (int(image3.max() * 0.9), image3.max())
+    image3[image3<low] = 0
+    image3[image3>high] = 0
+    image3[image3 != 0] = 255
+    if savework: 
+        cv2.imwrite(f'/tmp/{count}_threshold.png', image3)
 
     def whtest_lores(contour):
         (_,_,w,h) = cv2.boundingRect(contour)
@@ -142,8 +202,6 @@ def findSprocket(logger, image, film:str, hires=False, show=False,savework=False
     logger.debug(f'Found {len(contours)} contours')
     if 1 != len(contours):
         return (False, 0, 0, 0, 0)
-#    if show == False:
-#        return True
 
     for c in contours:
         logger.debug('Post filter Area: ' + str(cv2.contourArea(c)))
@@ -161,11 +219,7 @@ def findSprocket(logger, image, film:str, hires=False, show=False,savework=False
     # Print the size and location of the white square
     logger.debug(f'White square size: {cw}x{ch} pixels')
     logger.debug(f'White square location: ({cx}, {cy})')
-    if show:
-        cv2.drawContours(image3, [contour], -1, (100,100,100), thickness=cv2.FILLED)
-        plt.imshow(image3,cmap='gray')
-        plt.title('Identified')
-        plt.show()
+
     if savework:
         cv2.imwrite(f'/tmp/{count}_identified.png', image3)
 
