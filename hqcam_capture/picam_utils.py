@@ -77,7 +77,7 @@ def inccount():
     count += 1
 
 def findSprocket8mm(logger, image, hires=False, savework=False):
-    logger.debug(count)
+    logger.debug(f'frame {count}')
     origy,origx = image.shape[:2]
 
     xOffset = 0
@@ -107,7 +107,7 @@ def findSprocket8mm(logger, image, hires=False, savework=False):
 
     def whtest_lores(contour):
         (_,_,w,h) = cv2.boundingRect(contour)
-        return (90 < w < 110) & (80 < h < 100)
+        return (80 < w < 100) & (70 < h < 90)
 
     def whtest_hires(contour):
         (_,_,w,h) = cv2.boundingRect(contour)
