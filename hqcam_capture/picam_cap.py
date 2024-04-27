@@ -106,7 +106,7 @@ def pcl_framecap():
 #    parser.add_argument('--camindex', dest='camindex', help='Camera Index (/dev/videoX)', default=0)
     parser.add_argument(dest='do')
     parser.add_argument('--debug', dest='debug', action='store_true', help='debug (no crop, show lines)')
-    parser.add_argument('--showwork', dest='showwork', action='store_true', help='show intermediary images')
+    parser.add_argument('--savework', dest='savework', action='store_true', help='show intermediary images')
     parser.add_argument('--enddia', dest='enddia', type=int, default=35, help='Feed spool ending diameter (mm)')
     parser.add_argument('--fastforward', dest='fastforward', type=int, help='fast forward multiplier', default=8)
     parser.add_argument('--film', dest='film', choices=['super8','8mm'], help='8mm/super8', required=True)
@@ -167,8 +167,8 @@ def init_framecap(config):
     global camera
     camera = init_picam(int(config.exposure.split(',')[0]))['picam']
 
-    if config.showwork and not os.path.exists(workdir:='{}/work'.format(config.framesto)):
-        os.mkdir(workdir)
+#    if config.showwork and not os.path.exists(workdir:='{}/work'.format(config.framesto)):
+#        os.mkdir(workdir)
 
     global tension
     t = Tension()
@@ -234,34 +234,6 @@ def get_most_recent_frame(config):
     return frame
 
 
-#def framecap(config):
-#    startframe = get_most_recent_frame(config)
-#
-#    for framenum in range(config.frames):
-#        global lastTension
-#        lastTension = tension[framenum+startframe]
-#        logger.info(f'Tension {lastTension}')
-#        serwrite(str(lastTension).encode())
-#        serwrite(b'n')
-#        wait = serwaitfor(b'{HDONE}', b'{NTO}')
-#        if wait[0]:
-#            logger.error(wait[2])
-#            continue
-#
-#        frames = []
-#        for exp in config.exposure.split(','):
-#            try:
-#                target = f'{config.framesto}/{startframe+framenum:>08}_{exp}.png'
-#                command=f'rpicam-still -n --hflip=1 --immediate --width=2304 --height=1296 -e png --awb=indoor --shutter {exp} --output {target}'
-#                #command=f'rpicam-still -n --hflip=1 --immediate --width=640 --height=480 -e png --awb=indoor --shutter {exp} --output {target}'
-#                logger.debug(command)
-#                rc = subprocess.run(command.split())
-#            except Exception as ee:
-#                logger.error(f'capture failed {str(ee)}')
-#                break
-#    serwrite(b' ')
-#
-
 def setExposure(exposure):
     global camera
     camera.set_controls({'ExposureTime': exposure, 'AnalogueGain': 8.0})
@@ -310,8 +282,8 @@ def framecap(config):
 
     #    picam.switch_mode('exp0')
         try:
-            waitSprocket(logger, camera, config.film, desired = False, savework = False)
-            waitSprocket(logger, camera, config.film, desired = True, savework = False)
+            waitSprocket(logger, camera, config.film, desired = False, savework = config.savework)
+            waitSprocket(logger, camera, config.film, desired = True, savework = config.savework)
 
         except RuntimeError as rte:
             logger.error(str(rte))
