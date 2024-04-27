@@ -7,6 +7,7 @@
 
 PORT=/dev/ttyACM0
 PROJECT=20240422_2
+FILM=8mm
 FRAMES=${PWD}/frames/
 FP=${FRAMES}/${PROJECT}
 DEVICE=/dev/video0
@@ -263,9 +264,11 @@ case "$1" in
     ptf) ptf ;;
     #registration) ./00_registration.py --readfrom ${FP}/capture/'*.png' --writeto ${FP}/capture \
     #    --debugto ${FP}/capdebug --imageglob '000000[67]??';;
-    registration) ./00_registration.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.png' --writeto ${FP}/capture ;; #  --debugto ${FP}/capdebug ;;
+    registration) ./00_registration.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.png' --writeto ${FP}/capture --film ${FILM} ;;
+#        --onefile ${FP}/capture/00000001_16000.png --film ${FILM};;
+#        ;; #  --debugto ${FP}/capdebug ;;
 #      | tee registration.log ;; #   --onefile ${FP}/capture/00000003_20000.png ;;
-    car) ./01_crop_and_rotate.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} ;;
+    car) ./01_crop_and_rotate.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} --film ${FILM} ;;
     tf) tonefuse ;;
     cam) cam ;;
     ef) doenfuse ;;

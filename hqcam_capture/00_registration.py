@@ -23,6 +23,8 @@ def procargs():
     parser.add_argument('--onefile', dest='onefile', help='process one file')
     parser.add_argument('--writeto', dest='writeto', help='write to directory', required=True)
     parser.add_argument('--webdb', dest='webdb', help='enable web debugger (port 5555)', action='store_true', default=False)
+    parser.add_argument('--film', dest='film', choices=['super8','8mm'], help='8mm/super8', required=True)
+    parser.add_argument('--savework', dest='savework', help='save work files', action='store_true', default=False)
     return parser.parse_args()
 
 
@@ -45,15 +47,20 @@ def main():
         sys.exit(1)
 
     if args.onefile:
-        pdb.set_trace()
-        (_,x,y,width,height) = findSprocket(logger, cv2.imread(args.onefile, cv2.IMREAD_ANYCOLOR), hires=True, savework=True)
+        if 'super8' == args.film:
+            (_,x,y,width,height) = findSprocketS8(logger, cv2.imread(args.onefile, cv2.IMREAD_ANYCOLOR), hires=True, savework=args.savework)
+        else:
+            (_,x,y,width,height) = findSprocket8mm(logger, cv2.imread(args.onefile, cv2.IMREAD_ANYCOLOR), hires=True, savework=args.savework)
         writeto = os.path.splitext(os.path.basename(args.onefile))[0]
         with open(f'{realpath}/{writeto}.reg','wb') as out:
             out.write(f'{x+width} {x} {int(y+height/2)}'.encode())
         return
 
     for file in sorted(glob(args.readfrom)):
-        (_,x,y,width,height) = findSprocket(logger, cv2.imread(file, cv2.IMREAD_ANYCOLOR), hires=True)
+        if 'super8' == args.film:
+            (_,x,y,width,height) = findSprocketS8(logger, cv2.imread(file, cv2.IMREAD_ANYCOLOR), hires=True)
+        else:
+            (_,x,y,width,height) = findSprocket8mm(logger, cv2.imread(file, cv2.IMREAD_ANYCOLOR), hires=True)
         writeto = os.path.splitext(os.path.basename(file))[0]
         with open(f'{realpath}/{writeto}.reg','wb') as out:
             out.write(f'{x+width} {x} {int(y+height/2)}'.encode())

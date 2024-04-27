@@ -24,6 +24,7 @@ def procargs():
     parser.add_argument('--annotate', dest='annotate', help='annotate frames', action='store_true', default=False)
     parser.add_argument('--markonly', dest='markonly', help='mark frames', action='store_true', default=False)
     parser.add_argument('--exposures', dest='exposures', help='exposures', required=True)
+    parser.add_argument('--film', dest='film', choices=['super8','8mm'], help='8mm/super8', required=True)
     return parser.parse_args()
 
 #def setlogging(logname):
@@ -44,13 +45,20 @@ def procargs():
 #    logger.addHandler(stdioHandler)
 
 #def getRect(regfile):
-def getRect(leftX, centerY):
-#    centerX, centerY, rotate = open(regfile.encode(),'rb').read().split(b' ')
+def getRectS8(leftX, centerY):
     boxLeft = int(leftX) + 180
     boxRight = boxLeft + 1250
     boxTop = int(centerY) - 500
     boxBot = int(centerY) + 500
-    #return boxLeft,boxRight,boxTop,boxBot,float(rotate)
+
+    return boxLeft,boxRight,boxTop,boxBot
+
+def getRect8mm(leftX, centerY):
+    boxLeft = int(leftX) + 350 
+    boxRight = boxLeft + 1470 -350
+    boxTop = int(centerY) - 160
+    boxBot = int(centerY) + 1000
+
     return boxLeft,boxRight,boxTop,boxBot
 
 #def cropAndRotate(regfile, imagefile):
@@ -60,7 +68,10 @@ def cropAndRotate(leftX, centerY, readfrom, writeto):
     except Exception as ee:
         logger.error(f'Error reading from {imagefile}: {str(ee)}')
 
-    boxTop,boxBot,boxLeft,boxRight = getRect(leftX, centerY)
+    if 'super8' == args.film:
+        boxTop,boxBot,boxLeft,boxRight = getRectS8(leftX, centerY)
+    else:
+        boxTop,boxBot,boxLeft,boxRight = getRect8mm(leftX, centerY)
     height, width = image.shape[:2]
 #    rMatrix = cv2.getRotationMatrix2D(center=(width/2,height/2),angle=rotate,scale=1)
 #    rImage = cv2.warpAffine(src=image,M=rMatrix,dsize=(width,height))
