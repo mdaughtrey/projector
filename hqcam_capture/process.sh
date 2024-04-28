@@ -6,7 +6,7 @@
 # 3. 8mm or S8
 
 PORT=/dev/ttyACM0
-PROJECT=20240422_2
+PROJECT=20240427_1
 FILM=8mm
 FRAMES=${PWD}/frames/
 FP=${FRAMES}/${PROJECT}
@@ -15,7 +15,7 @@ DEVICE=/dev/video0
 #VIDEOSIZE=640x480
 VIDEOSIZE=1280x720
 # Extended Dynamic Range
-EXPOSURES="9000,16000,22000,28000"
+EXPOSURES="5000,10000,16000,22000"
 IFS=, read -ra EXPOSE <<<${EXPOSURES}
 EDR="--exposure ${EXPOSURES}"
 
@@ -41,8 +41,8 @@ s8()
 
 mm8()
 {
-    ./picam_cap.py framecap --framesto ${FP}/capture --frames 4000 --logfile picam_cap.log \
-        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33
+    ./picam_cap.py framecap --framesto ${FP}/capture --frames 4600 --logfile picam_cap.log \
+        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33 # --savework
 }
 
 sertest()
@@ -234,11 +234,11 @@ case "$1" in
         rm *.log
         mm8
         echo s > ${PORT}
-        mv /tmp/*.png /media/frames/${PROJECT}/findsprocket/
+#        mv /tmp/*.png /media/frames/${PROJECT}/findsprocket/
         ;;
 
     s8) 
-        rm frames/${PROJECT}/findsprocket/*.png
+#        rm frames/${PROJECT}/findsprocket/*.png
 #        rm frames/${PROJECT}/capture/*.png
         rm *.log
         s8 

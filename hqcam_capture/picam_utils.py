@@ -78,6 +78,8 @@ def inccount():
 
 def findSprocket8mm(logger, image, hires=False, savework=False):
     logger.debug(f'frame {count}')
+    if savework:
+        cv2.imwrite(f'/tmp/{count}_input.png', image)
     origy,origx = image.shape[:2]
 
     xOffset = 0
@@ -85,11 +87,12 @@ def findSprocket8mm(logger, image, hires=False, savework=False):
     if hires:
         image = image[0:int(origy/3), xOffset:750]
     else:
-        image = image[0:int(origy/3), xOffset:xOffset + int(origx/4)]
+        image = image[0:170, 0:210]
 
     if savework:
         cv2.imwrite(f'/tmp/{count}_sliced.png', image)
 
+    #image=np.asarray(cv2.cvtColor(cv2.imread('/media/frames/20240427_1/findsprocket/13_sliced.png'),cv2.COLOR_BGR2GRAY),dtype=np.uint8)
 
     image2 = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     image3 = np.asarray(image2, dtype=np.uint8)
@@ -98,7 +101,10 @@ def findSprocket8mm(logger, image, hires=False, savework=False):
         cv2.imwrite(f'/tmp/{count}_eroded.png', image3)
 
     logger.debug(str(image3[80]))
-    low,high = (int(image3.max() * 0.9), image3.max())
+    low,high = (int(image3.max() * 0.8), image3.max())
+#    low, high = (130,170)
+
+    logger.debug(f'low {low} high {high}')
     image3[image3<low] = 0
     image3[image3>high] = 0
     image3[image3 != 0] = 255
@@ -107,7 +113,7 @@ def findSprocket8mm(logger, image, hires=False, savework=False):
 
     def whtest_lores(contour):
         (_,_,w,h) = cv2.boundingRect(contour)
-        return (80 < w < 100) & (70 < h < 90)
+        return (125 < w < 145) & (115 < h < 135)
 
     def whtest_hires(contour):
         (_,_,w,h) = cv2.boundingRect(contour)
