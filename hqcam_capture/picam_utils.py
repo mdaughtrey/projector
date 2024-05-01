@@ -82,12 +82,13 @@ def findSprocket8mm(logger, image, hires=False, savework=False):
         cv2.imwrite(f'/tmp/{count}_input.png', image)
     origy,origx = image.shape[:2]
 
-    xOffset = 0
 
     if hires:
+        xOffset = 0
         image = image[0:500, 0:750]
     else:
-        image = image[0:170, 0:210]
+        xOffset = 72
+        image = image[0:170, xOffset:210]
 
     if savework:
         cv2.imwrite(f'/tmp/{count}_sliced.png', image)
@@ -101,7 +102,7 @@ def findSprocket8mm(logger, image, hires=False, savework=False):
         cv2.imwrite(f'/tmp/{count}_eroded.png', image3)
 
     logger.debug(str(image3[80]))
-    low,high = (int(image3.max() * 0.8), image3.max())
+    low,high = (image3.max() - 10, image3.max())
 #    low, high = (130,170)
 
     logger.debug(f'low {low} high {high}')
@@ -119,6 +120,7 @@ def findSprocket8mm(logger, image, hires=False, savework=False):
         (_,_,w,h) = cv2.boundingRect(contour)
         return (485 < w < 505) & (339 < h < 359)
 
+    logger.debug('Image Average {}'.format(np.average(image3)))
 
     # Find the contours in the thresholded image
     contours, _ = cv2.findContours(image3, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -144,6 +146,7 @@ def findSprocket8mm(logger, image, hires=False, savework=False):
 
     # Get the bounding box of the largest contour
     cx, cy, cw, ch = cv2.boundingRect(contour)
+    cx += xOffset
 #    if hires:
 #        cy += int(origy/4)
 #    else:
