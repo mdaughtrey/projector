@@ -6,7 +6,7 @@
 # 3. 8mm or S8
 
 PORT=/dev/ttyACM0
-PROJECT=20240427_1
+PROJECT=20240429_1
 FILM=8mm
 FRAMES=${PWD}/frames/
 FP=${FRAMES}/${PROJECT}
@@ -20,7 +20,7 @@ IFS=, read -ra EXPOSE <<<${EXPOSURES}
 EDR="--exposure ${EXPOSURES}"
 
 #exec > >(tee -a usb_${OP}_$(TZ= date +%Y%m%d%H%M%S).log) 2>&1
-exec > >(tee -a process_$(TZ= date +%Y%m%d%H%M%S).log) 2>&1
+#exec > >(tee -a process.log) 2>&1
 
 mkdir -p ${FP}
 

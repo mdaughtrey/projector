@@ -85,7 +85,7 @@ def findSprocket8mm(logger, image, hires=False, savework=False):
     xOffset = 0
 
     if hires:
-        image = image[0:int(origy/3), xOffset:750]
+        image = image[0:500, 0:750]
     else:
         image = image[0:170, 0:210]
 
@@ -117,7 +117,8 @@ def findSprocket8mm(logger, image, hires=False, savework=False):
 
     def whtest_hires(contour):
         (_,_,w,h) = cv2.boundingRect(contour)
-        return (350 < w < 380) & (240 < h < 270)
+        return (485 < w < 505) & (339 < h < 359)
+
 
     # Find the contours in the thresholded image
     contours, _ = cv2.findContours(image3, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -149,7 +150,7 @@ def findSprocket8mm(logger, image, hires=False, savework=False):
 #        cy += int(origy/3) + xOffset
 #
     if savework:
-        cv2.rectangle(image3, (cy,cx),(cy+ch,cx+cw), (100,100,100),3)
+        cv2.rectangle(image3, (cx,cy),(cx+cw,cy+ch), (100,100,100),3)
         cv2.imwrite(f'/tmp/{count}_rectangle.png', image3)
 #        cv2.drawContours(image3, [contour], -1, (100,100,100), thickness=cv2.FILLED)
 
