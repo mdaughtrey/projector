@@ -76,22 +76,25 @@ def inccount():
     global count
     count += 1
 
+def dumpSaved(saved):
+    for kk,vv in saved.items():
+        cv2.imwrite(f'/tmp/{count}_{kk}.png', vv)
+
 def findSprocket8mm(logger, image, hires=False, savework=False):
     logger.debug(f'frame {count}')
-    if savework:
-        cv2.imwrite(f'/tmp/{count}_input.png', image)
     origy,origx = image.shape[:2]
 
-
     if hires:
-        xOffset = 0
-        image = image[0:500, 0:750]
+        xOffset = 350
+        image = image[0:500, xOffset:550]
     else:
         xOffset = 72
         image = image[0:170, xOffset:210]
 
+    savedwork = {}
     if savework:
-        cv2.imwrite(f'/tmp/{count}_sliced.png', image)
+        savedwork['sliced'] = image.copy()
+#        cv2.imwrite(f'/tmp/{count}_sliced.png', image)
 
     #image=np.asarray(cv2.cvtColor(cv2.imread('/media/frames/20240427_1/findsprocket/13_sliced.png'),cv2.COLOR_BGR2GRAY),dtype=np.uint8)
 
@@ -99,18 +102,20 @@ def findSprocket8mm(logger, image, hires=False, savework=False):
     image3 = np.asarray(image2, dtype=np.uint8)
     image3 = ndimage.grey_erosion(image3, size=(5,5))
     if savework:
-        cv2.imwrite(f'/tmp/{count}_eroded.png', image3)
+        savedwork['eroded'] = image3.copy()
+#        cv2.imwrite(f'/tmp/{count}_eroded.png', image3)
 
     logger.debug(str(image3[80]))
-    low,high = (image3.max() - 10, image3.max())
-#    low, high = (130,170)
+#    low,high = (image3.max() - 10, image3.max())
+    low, high = (250,255)
 
     logger.debug(f'low {low} high {high}')
     image3[image3<low] = 0
     image3[image3>high] = 0
     image3[image3 != 0] = 255
     if savework: 
-        cv2.imwrite(f'/tmp/{count}_threshold.png', image3)
+        savedwork['threshold'] = image3.copy()
+#        cv2.imwrite(f'/tmp/{count}_threshold.png', image3)
 
     def whtest_lores(contour):
         (_,_,w,h) = cv2.boundingRect(contour)
@@ -118,7 +123,8 @@ def findSprocket8mm(logger, image, hires=False, savework=False):
 
     def whtest_hires(contour):
         (_,_,w,h) = cv2.boundingRect(contour)
-        return (485 < w < 505) & (339 < h < 359)
+        return (303 < h < 330)
+        #return (437 < w < 457) & (313 < h < 333)
 
     logger.debug('Image Average {}'.format(np.average(image3)))
 
@@ -136,6 +142,7 @@ def findSprocket8mm(logger, image, hires=False, savework=False):
         contours = list(filter(whtest_lores, contours))
     logger.debug(f'Found {len(contours)} contours')
     if 1 != len(contours):
+        dumpSaved(savedwork)
         return (False, 0, 0, 0, 0)
 
     for c in contours:
@@ -146,23 +153,26 @@ def findSprocket8mm(logger, image, hires=False, savework=False):
 
     # Get the bounding box of the largest contour
     cx, cy, cw, ch = cv2.boundingRect(contour)
-    cx += xOffset
 #    if hires:
 #        cy += int(origy/4)
 #    else:
 #        cy += int(origy/3) + xOffset
 #
     if savework:
-        cv2.rectangle(image3, (cx,cy),(cx+cw,cy+ch), (100,100,100),3)
-        cv2.imwrite(f'/tmp/{count}_rectangle.png', image3)
+        rectangle = image3.copy()
+        cv2.rectangle(rectangle, (cx,cy),(cx+cw,cy+ch), (100,100,100),3)
+        savedwork['rectangle'] = rectangle
+#        cv2.imwrite(f'/tmp/{count}_rectangle.png', image3)
 #        cv2.drawContours(image3, [contour], -1, (100,100,100), thickness=cv2.FILLED)
+    cx += xOffset
 
     # Print the size and location of the white square
     logger.debug(f'White square size: {cw}x{ch} pixels')
     logger.debug(f'White square location: ({cx}, {cy})')
 
     if savework:
-        cv2.imwrite(f'/tmp/{count}_identified.png', image3)
+        savedwork['identified'] = image3.copy()
+#        cv2.imwrite(f'/tmp/{count}_identified.png', image3)
 
     return (True, cx, cy, cw, ch)
 
@@ -175,13 +185,16 @@ def findSprocketS8(logger, image, hires=False, savework=False):
     else:
         image = image[int(origy/3):origy-int(origy/3),0:int(origx/5)]
 
+    savedwork = {}
     if savework:
-        cv2.imwrite(f'/tmp/{count}_sliced.png', image)
+        savedwork['sliced'] = image.copy()
+#        cv2.imwrite(f'/tmp/{count}_sliced.png', image)
     image2 = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     image3 = np.asarray(image2, dtype=np.uint8)
     image3 = ndimage.grey_erosion(image3, size=(5,5))
     if savework:
-        cv2.imwrite(f'/tmp/{count}_eroded.png', image3)
+        savedwork['eroded'] = image3.copy()
+#        cv2.imwrite(f'/tmp/{count}_eroded.png', image3)
 
     logger.debug(str(image3[80]))
     low,high = (int(image3.max() * 0.9), image3.max())
@@ -189,7 +202,8 @@ def findSprocketS8(logger, image, hires=False, savework=False):
     image3[image3>high] = 0
     image3[image3 != 0] = 255
     if savework: 
-        cv2.imwrite(f'/tmp/{count}_threshold.png', image3)
+        savedwork['threshold'] = image3.copy()
+#        cv2.imwrite(f'/tmp/{count}_threshold.png', image3)
 
     def whtest_lores(contour):
         (_,_,w,h) = cv2.boundingRect(contour)
@@ -231,7 +245,7 @@ def findSprocketS8(logger, image, hires=False, savework=False):
     logger.debug(f'White square location: ({cx}, {cy})')
 
     if savework:
-        cv2.imwrite(f'/tmp/{count}_identified.png', image3)
+        savedwork['identified'] = image3.copy()
 
     return (True, cx, cy, cw, ch)
 

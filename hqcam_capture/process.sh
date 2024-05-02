@@ -41,8 +41,8 @@ s8()
 
 mm8()
 {
-    ./picam_cap.py framecap --framesto ${FP}/capture --frames 4600 --logfile picam_cap.log \
-        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33 # --savework
+    ./picam_cap.py framecap --framesto ${FP}/capture --frames 4 --logfile picam_cap.log \
+        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33 --savework
 }
 
 sertest()
@@ -206,6 +206,11 @@ doenfuse()
     rm row1.png row2.png enfused.png
 }
 
+doregsum()
+{
+    for ff in ${FP}/capture/*.reg; do echo -n $ff; echo -n ' '; cat $ff; echo; done > reg.txt
+}
+
 #setres()
 #{
 #    v4l2-ctl --device $(getdev)  --set-fmt-video=width=2592,height=1944
@@ -264,7 +269,8 @@ case "$1" in
     ptf) ptf ;;
     #registration) ./00_registration.py --readfrom ${FP}/capture/'*.png' --writeto ${FP}/capture \
     #    --debugto ${FP}/capdebug --imageglob '000000[67]??';;
-    registration) ./00_registration.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.png' --writeto ${FP}/capture --film ${FILM} ;;
+    registration) ./00_registration.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.png' --writeto ${FP}/capture --film ${FILM}  --savework ;;
+    regsum) doregsum ;;
 #        --onefile ${FP}/capture/00000001_16000.png --film ${FILM};;
 #        ;; #  --debugto ${FP}/capdebug ;;
 #      | tee registration.log ;; #   --onefile ${FP}/capture/00000003_20000.png ;;
