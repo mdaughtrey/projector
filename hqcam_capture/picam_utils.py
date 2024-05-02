@@ -55,7 +55,7 @@ def init_picam(exposure:int) -> dict:
     camera['picam'].start()
     return camera
 
-def waitSprocket(logger, picam, film:str, desired:bool, savework:bool) -> None:
+def waitSprocket(logger, picam, film:str, desired:bool, savework:bool=False, saveallwork:bool=False) -> None:
 #    global picam
     global count
     start = time.time()
@@ -64,9 +64,9 @@ def waitSprocket(logger, picam, film:str, desired:bool, savework:bool) -> None:
         count += 1
         logger.debug(str(picam.capture_metadata()))
         if 'super8' == film:
-            inSprocket = findSprocketS8(logger, buffer, savework = savework)[0]
+            inSprocket = findSprocketS8(logger, buffer, savework=savework, saveallwork=saveallwork)[0]
         else:
-            inSprocket = findSprocket8mm(logger, buffer, savework = savework)[0]
+            inSprocket = findSprocket8mm(logger, buffer, savework=savework, saveallwork=saveallwork)[0]
         logger.debug(f'inSprocket {inSprocket}, need {str(desired)}')
         if desired == inSprocket:
             return
@@ -80,16 +80,18 @@ def dumpSaved(saved):
     for kk,vv in saved.items():
         cv2.imwrite(f'/tmp/{count}_{kk}.png', vv)
 
-def findSprocket8mm(logger, image, hires=False, savework=False):
+def findSprocket8mm(logger, image, hires=False, savework=False,saveallwork=False):
     logger.debug(f'frame {count}')
     origy,origx = image.shape[:2]
+    if saveallwork:
+        savework = True
 
     if hires:
         xOffset = 350
         image = image[0:500, xOffset:550]
     else:
-        xOffset = 72
-        image = image[0:170, xOffset:210]
+        xOffset = 97
+        image = image[0:170, xOffset:160]
 
     savedwork = {}
     if savework:
@@ -119,7 +121,8 @@ def findSprocket8mm(logger, image, hires=False, savework=False):
 
     def whtest_lores(contour):
         (_,_,w,h) = cv2.boundingRect(contour)
-        return (110 < w < 130) & (100 < h < 120)
+        return (100 < h < 120)
+        #return (110 < w < 130) & (100 < h < 120)
 
     def whtest_hires(contour):
         (_,_,w,h) = cv2.boundingRect(contour)
@@ -173,10 +176,12 @@ def findSprocket8mm(logger, image, hires=False, savework=False):
     if savework:
         savedwork['identified'] = image3.copy()
 #        cv2.imwrite(f'/tmp/{count}_identified.png', image3)
+    if saveallwork:
+        dumpSaved(savedwork)
 
     return (True, cx, cy, cw, ch)
 
-def findSprocketS8(logger, image, hires=False, savework=False):
+def findSprocketS8(logger, image, hires=False, savework=False, saveallwork=False):
     logger.debug(count)
     origy,origx = image.shape[:2]
 

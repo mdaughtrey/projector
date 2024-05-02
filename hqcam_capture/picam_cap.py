@@ -106,7 +106,8 @@ def pcl_framecap():
 #    parser.add_argument('--camindex', dest='camindex', help='Camera Index (/dev/videoX)', default=0)
     parser.add_argument(dest='do')
     parser.add_argument('--debug', dest='debug', action='store_true', help='debug (no crop, show lines)')
-    parser.add_argument('--savework', dest='savework', action='store_true', help='show intermediary images')
+    parser.add_argument('--savework', dest='savework', action='store_true', help='show bad working images')
+    parser.add_argument('--saveallwork', dest='saveallwork', action='store_true', help='show all working images')
     parser.add_argument('--enddia', dest='enddia', type=int, default=35, help='Feed spool ending diameter (mm)')
     parser.add_argument('--fastforward', dest='fastforward', type=int, help='fast forward multiplier', default=8)
     parser.add_argument('--film', dest='film', choices=['super8','8mm'], help='8mm/super8', required=True)
@@ -282,8 +283,8 @@ def framecap(config):
 
     #    picam.switch_mode('exp0')
         try:
-            waitSprocket(logger, camera, config.film, desired = False, savework = config.savework)
-            waitSprocket(logger, camera, config.film, desired = True, savework = config.savework)
+            waitSprocket(logger, camera, config.film, desired = False, savework = config.savework, saveallwork=config.saveallwork)
+            waitSprocket(logger, camera, config.film, desired = True, savework = config.savework, saveallwork=config.saveallwork)
 
         except RuntimeError as rte:
             logger.error(str(rte))

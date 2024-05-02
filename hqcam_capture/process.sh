@@ -6,7 +6,7 @@
 # 3. 8mm or S8
 
 PORT=/dev/ttyACM0
-PROJECT=20240430_1
+PROJECT=20240501_1
 FILM=8mm
 FRAMES=${PWD}/frames/
 FP=${FRAMES}/${PROJECT}
@@ -41,8 +41,8 @@ s8()
 
 mm8()
 {
-    ./picam_cap.py framecap --framesto ${FP}/capture --frames 4 --logfile picam_cap.log \
-        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33 --savework
+    ./picam_cap.py framecap --framesto ${FP}/capture --frames 4600 --logfile picam_cap.log \
+        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33
 }
 
 sertest()
