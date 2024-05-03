@@ -337,7 +337,7 @@ def main():
     global logger
     if 'framecap' == sys.argv[1]:
         config = pcl_framecap()
-        logger = setLogging('picam_cap', config.logfile, logging.INFO)['logger']
+        logger = setLogging('picam_cap', config.logfile, logging.WARN)['logger']
         init_framecap(config)
     elif 'exptest' == sys.argv[1]:
         config = pcl_exptest()

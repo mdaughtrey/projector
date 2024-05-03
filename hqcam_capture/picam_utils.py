@@ -150,7 +150,6 @@ def findSprocket8mm(logger, image, hires=False, savework=False,saveallwork=False
         # leaking around the sprocket is throwing off the size detection. See
         # if we can synthesize something.
         logger.info('Synthesizing rects')
-        pdb.set_trace()
         for r in rects:
             if r['y'] > 0 and r['h'] > 330:
                 r['h'] = 320

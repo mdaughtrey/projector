@@ -6,7 +6,7 @@
 # 3. 8mm or S8
 
 PORT=/dev/ttyACM0
-PROJECT=20240501_1
+PROJECT=fm117
 FILM=8mm
 FRAMES=${PWD}/frames/
 FP=${FRAMES}/${PROJECT}
