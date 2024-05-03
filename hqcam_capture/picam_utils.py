@@ -119,43 +119,57 @@ def findSprocket8mm(logger, image, hires=False, savework=False,saveallwork=False
         savedwork['threshold'] = image3.copy()
 #        cv2.imwrite(f'/tmp/{count}_threshold.png', image3)
 
-    def whtest_lores(contour):
-        (_,_,w,h) = cv2.boundingRect(contour)
-        return (100 < h < 120)
+    def whtest_lores(rect):
+#        (_,_,w,h) = cv2.boundingRect(contour)
+        return (100 < rect['h'] < 120)
         #return (110 < w < 130) & (100 < h < 120)
 
-    def whtest_hires(contour):
-        (_,_,w,h) = cv2.boundingRect(contour)
-        return (303 < h < 330)
+    def whtest_hires(rect):
+#        (_,_,w,h) = cv2.boundingRect(contour)
+        return (303 < rect['h'] < 330)
         #return (437 < w < 457) & (313 < h < 333)
 
     logger.debug('Image Average {}'.format(np.average(image3)))
 
     # Find the contours in the thresholded image
     contours, _ = cv2.findContours(image3, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    rects = []
     for c in contours:
-        logger.debug('Pre filter Area: ' + str(cv2.contourArea(c)))
         x, y, width, height = cv2.boundingRect(c)
+        rects.append({'x':x, 'y':y, 'w':width, 'h':height})
         logger.debug(f'x {x} y {y} width {width} height {height}')
 
 
     if hires:
-        contours = list(filter(whtest_hires, contours))
+        frects = list(filter(whtest_hires, rects))
     else:
-        contours = list(filter(whtest_lores, contours))
-    logger.debug(f'Found {len(contours)} contours')
-    if 1 != len(contours):
+        frects = list(filter(whtest_lores, rects))
+    logger.debug(f'Found {len(frects)} filtered rects')
+    if 1 != len(frects):
+        # None of the contours pass the size filter, likely because light
+        # leaking around the sprocket is throwing off the size detection. See
+        # if we can synthesize something.
+        logger.info('Synthesizing rects')
+        pdb.set_trace()
+        for r in rects:
+            if r['y'] > 0 and r['h'] > 330:
+                r['h'] = 320
+                frects = [r]
+                break
+
+    if 1 != len(frects):
         dumpSaved(savedwork)
         return (False, 0, 0, 0, 0)
 
-    for c in contours:
-        logger.debug('Post filter Area: ' + str(cv2.contourArea(c)))
-        x, y, width, height = cv2.boundingRect(c)
-        logger.debug(f'x {x} y {y} width {width} height {height}')
-    contour = contours[0]
+#    for c in contours:
+#        logger.debug('Post filter Area: ' + str(cv2.contourArea(c)))
+#        x, y, width, height = cv2.boundingRect(c)
+#        logger.debug(f'x {x} y {y} width {width} height {height}')
+#    contour = contours[0]
+    x,y,w,h = [frects[0][kk] for kk in ['x','y','w','h']]
 
     # Get the bounding box of the largest contour
-    cx, cy, cw, ch = cv2.boundingRect(contour)
+#    cx, cy, cw, ch = cv2.boundingRect(contour)
 #    if hires:
 #        cy += int(origy/4)
 #    else:
@@ -163,15 +177,15 @@ def findSprocket8mm(logger, image, hires=False, savework=False,saveallwork=False
 #
     if savework:
         rectangle = image3.copy()
-        cv2.rectangle(rectangle, (cx,cy),(cx+cw,cy+ch), (100,100,100),3)
+        cv2.rectangle(rectangle, (x,y),(x+w,y+h), (100,100,100),3)
         savedwork['rectangle'] = rectangle
 #        cv2.imwrite(f'/tmp/{count}_rectangle.png', image3)
 #        cv2.drawContours(image3, [contour], -1, (100,100,100), thickness=cv2.FILLED)
-    cx += xOffset
+    x += xOffset
 
     # Print the size and location of the white square
-    logger.debug(f'White square size: {cw}x{ch} pixels')
-    logger.debug(f'White square location: ({cx}, {cy})')
+    logger.debug(f'White square size: {w}x{h} pixels')
+    logger.debug(f'White square location: ({x}, {y})')
 
     if savework:
         savedwork['identified'] = image3.copy()
@@ -179,7 +193,7 @@ def findSprocket8mm(logger, image, hires=False, savework=False,saveallwork=False
     if saveallwork:
         dumpSaved(savedwork)
 
-    return (True, cx, cy, cw, ch)
+    return (True, x, y, w, h)
 
 def findSprocketS8(logger, image, hires=False, savework=False, saveallwork=False):
     logger.debug(count)

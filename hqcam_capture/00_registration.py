@@ -63,7 +63,8 @@ def main():
             (_,x,y,width,height) = findSprocket8mm(logger, cv2.imread(file, cv2.IMREAD_ANYCOLOR), hires=True, savework=args.savework)
         inccount()
         writeto = os.path.splitext(os.path.basename(file))[0]
-        with open(f'{realpath}/{writeto}.reg','wb') as out:
-            out.write(f'{x+width} {x} {int(y+height/2)}'.encode())
+        if not os.path.exists(writeto):
+            with open(f'{realpath}/{writeto}.reg','wb') as out:
+                out.write(f'{x+width} {x} {int(y+height/2)}'.encode())
 
 main()

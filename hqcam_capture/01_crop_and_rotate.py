@@ -47,15 +47,15 @@ def procargs():
 #def getRect(regfile):
 def getRectS8(leftX, centerY):
     boxLeft = int(leftX) + 180
-    boxRight = boxLeft + 1250
+    boxRight = boxLeft + 1250 
     boxTop = int(centerY) - 500
     boxBot = int(centerY) + 500
 
     return boxLeft,boxRight,boxTop,boxBot
 
 def getRect8mm(leftX, centerY):
-    boxLeft = int(leftX) + 350 
-    boxRight = boxLeft + 1470 -350
+    boxLeft = int(leftX) + 180
+    boxRight = boxLeft + 1300
     boxTop = int(centerY) - 160
     boxBot = int(centerY) + 1000
 
@@ -69,9 +69,9 @@ def cropAndRotate(leftX, centerY, readfrom, writeto):
         logger.error(f'Error reading from {imagefile}: {str(ee)}')
 
     if 'super8' == args.film:
-        boxTop,boxBot,boxLeft,boxRight = getRectS8(leftX, centerY)
+        boxLeft,boxRight,boxTop,boxBot = getRectS8(leftX, centerY)
     else:
-        boxTop,boxBot,boxLeft,boxRight = getRect8mm(leftX, centerY)
+        boxLeft,boxRight,boxTop,boxBot = getRect8mm(leftX, centerY)
     height, width = image.shape[:2]
 #    rMatrix = cv2.getRotationMatrix2D(center=(width/2,height/2),angle=rotate,scale=1)
 #    rImage = cv2.warpAffine(src=image,M=rMatrix,dsize=(width,height))

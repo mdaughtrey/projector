@@ -77,10 +77,8 @@ praw()
 {
     subdir=${1:-capture}
 #    IFS=, read -ra exs <<<${EXPOSURES}
-    for ex in ${EXPOSURES//,/ }; do
-        ffmpeg -f image2 -r 18 -pattern_type glob -i "${FP}/${subdir}/????????_${ex}.png" \
-            -vcodec libx264 -vf scale=640x480 -y ${FP}/${PROJECT}_praw_${ex}.mp4 
-    done
+    ffmpeg -f image2 -r 18 -pattern_type glob -i "${FP}/${subdir}/????????_${EXPOSE[1]}.png" \
+        -vcodec libx264 -vf scale=640x480 -y ${FP}/${PROJECT}_praw.mp4 
 }
 
 pcar()
@@ -211,6 +209,11 @@ doregsum()
     for ff in ${FP}/capture/*.reg; do echo -n $ff; echo -n ' '; cat $ff; echo; done > reg.txt
 }
 
+clean()
+{
+    rm ${FP}/$1/*
+}
+
 #setres()
 #{
 #    v4l2-ctl --device $(getdev)  --set-fmt-video=width=2592,height=1944
@@ -267,6 +270,8 @@ case "$1" in
     praw) praw ;;
     pcar) pcar ;;
     ptf) ptf ;;
+    clean) clean $2 ;;
+    cfp) scp -r projector:/media/frames/${PROJECT} /mnt/s/frames ;;
     #registration) ./00_registration.py --readfrom ${FP}/capture/'*.png' --writeto ${FP}/capture \
     #    --debugto ${FP}/capdebug --imageglob '000000[67]??';;
     registration) ./00_registration.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.png' --writeto ${FP}/capture --film ${FILM}  --savework ;;
