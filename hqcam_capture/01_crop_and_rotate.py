@@ -27,24 +27,6 @@ def procargs():
     parser.add_argument('--film', dest='film', choices=['super8','8mm'], help='8mm/super8', required=True)
     return parser.parse_args()
 
-#def setlogging(logname):
-#    global logger
-#    FormatString='%(asctime)s %(levelname)s %(funcName)s %(lineno)s %(message)s'
-##    logging.basicConfig(level = logging.DEBUG, format=FormatString)
-#    
-#    logger = logging.getLogger('picam')
-#    logger.setLevel(logging.DEBUG)
-#    fileHandler = FileHandler(filename = logname)
-#    fileHandler.setFormatter(logging.Formatter(fmt=FormatString))
-#    fileHandler.setLevel(logging.DEBUG)
-#    logger.addHandler(fileHandler)
-#
-#    stdioHandler = StreamHandler(sys.stdout)
-#    stdioHandler.setFormatter(logging.Formatter(fmt=FormatString))
-#    stdioHandler.setLevel(logging.INFO)
-#    logger.addHandler(stdioHandler)
-
-#def getRect(regfile):
 def getRectS8(leftX, centerY):
     boxLeft = int(leftX) + 180
     boxRight = boxLeft + 1250 
@@ -53,44 +35,48 @@ def getRectS8(leftX, centerY):
 
     return boxLeft,boxRight,boxTop,boxBot
 
-def getRect8mm(leftX, centerY):
-    boxLeft = int(leftX) + 180
-    boxRight = boxLeft + 1300
-    boxTop = int(centerY) - 160
-    boxBot = int(centerY) + 1000
-
-    return boxLeft,boxRight,boxTop,boxBot
+def getRect8mm(centerY):
+    return (720,2010,max(centerY-20,0),centerY+980)
+#    boxLeft = int(leftX) + 180
+#    boxRight = boxLeft + 1520
+#    boxTop = int(centerY) - 160
+#    boxBot = int(centerY) + 1000
+#    return boxLeft,boxRight,boxTop,boxBot
 
 #def cropAndRotate(regfile, imagefile):
-def cropAndRotate(leftX, centerY, readfrom, writeto):
+def cropAndRotate(centerY, readfrom, writeto):
     try:
         image = cv2.imread(readfrom, cv2.IMREAD_ANYCOLOR)
     except Exception as ee:
         logger.error(f'Error reading from {imagefile}: {str(ee)}')
 
     if 'super8' == args.film:
-        boxLeft,boxRight,boxTop,boxBot = getRectS8(leftX, centerY)
+        boxLeft,boxRight,boxTop,boxBot = getRectS8(centerY)
     else:
-        boxLeft,boxRight,boxTop,boxBot = getRect8mm(leftX, centerY)
+        boxLeft,boxRight,boxTop,boxBot = getRect8mm(centerY)
     height, width = image.shape[:2]
 #    rMatrix = cv2.getRotationMatrix2D(center=(width/2,height/2),angle=rotate,scale=1)
 #    rImage = cv2.warpAffine(src=image,M=rMatrix,dsize=(width,height))
+    logger.debug(writeto)
+    logger.debug(f'centerY {centerY} boxLeft {boxLeft} boxRight {boxRight} boxTop {boxTop} boxBot {boxBot}')
 
     rImage = image
     if args.markonly:
 #        cv2.circle(original,(int(avgright),int((avgtop+avgbot)/2)),12,(0,255,0),-1)
         rImage = cv2.rectangle(rImage, (boxTop, boxLeft), (boxBot, boxRight), (0,255,0), 1)
     else:
-        rImage = rImage[boxLeft:boxRight, boxTop:boxBot]
+        rImage = rImage[boxTop:boxBot,boxLeft:boxRight]
     if args.annotate:
         org = (50,350)
         # write the text on the input image
         imageNum = os.path.splitext(os.path.basename(readfrom))[0].split('_')[0]
         cv2.putText(rImage, imageNum, org, fontFace = cv2.FONT_HERSHEY_COMPLEX, fontScale = 1.5, color = (250,225,100))
+    logger.debug(f'Writing shape {str(rImage.shape)}')
     cv2.imwrite(writeto, rImage)
 
 def main():
     global args
+    global logger
     logger = setLogging('car','01_crop_and_rotate.log',logging.INFO)['logger']
     args = procargs()
 
@@ -108,7 +94,7 @@ def main():
 
     exposures = [int(x) for x in args.exposures.split(',')]
     for regfile in sorted(glob(readpath)):
-        rightX, leftX, centerY, = map(int, open(regfile.encode(),'rb').read().split(b' '))
+        centerY = int(open(regfile.encode(),'rb').read().strip())
 #        if centerX is None:
 #            centerX = cX
         for exposure in exposures[1:]:
@@ -121,7 +107,7 @@ def main():
             #if not os.path.exists(writeto) | 0 == os.path.getsize(writeto):
             if not os.path.exists(writeto):
                 try:
-                    cropAndRotate(leftX, centerY, readfrom, writeto)
+                    cropAndRotate(centerY, readfrom, writeto)
                 except Exception as ee:
                     logger.warning(f'Skipping {writeto}: {str(ee)}')
 

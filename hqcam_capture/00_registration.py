@@ -20,11 +20,11 @@ logger = None
 def procargs():
     parser = argparse.ArgumentParser()
     parser.add_argument('--readfrom', dest='readfrom', help='read from glob')
-    parser.add_argument('--onefile', dest='onefile', help='process one file')
     parser.add_argument('--writeto', dest='writeto', help='write to directory', required=True)
     parser.add_argument('--webdb', dest='webdb', help='enable web debugger (port 5555)', action='store_true', default=False)
     parser.add_argument('--film', dest='film', choices=['super8','8mm'], help='8mm/super8', required=True)
-    parser.add_argument('--savework', dest='savework', help='save work files', action='store_true', default=False)
+    parser.add_argument('--savework', dest='savework', action='store_true', help='show bad working images')
+    parser.add_argument('--saveallwork', dest='saveallwork', action='store_true', help='show all working images')
     return parser.parse_args()
 
 
@@ -37,34 +37,23 @@ def main():
         logger.error(f'{args.readfrom} does not exist')
         sys.exit(1)
 
-    if args.onefile and not os.path.isfile(args.onefile):
-        logger.error(f'{args.onefile} does not exist')
-        sys.exit(1)
-
     realpath = os.path.realpath(args.writeto)
     if not os.path.exists(os.path.dirname(realpath)):
         logger.error(f'{args.writeto} does not exist')
         sys.exit(1)
 
-    if args.onefile:
-        if 'super8' == args.film:
-            (_,x,y,width,height) = findSprocketS8(logger, cv2.imread(args.onefile, cv2.IMREAD_ANYCOLOR), hires=True, savework=args.savework)
-        else:
-            (_,x,y,width,height) = findSprocket8mm(logger, cv2.imread(args.onefile, cv2.IMREAD_ANYCOLOR), hires=True, savework=args.savework)
-        writeto = os.path.splitext(os.path.basename(args.onefile))[0]
-        with open(f'{realpath}/{writeto}.reg','wb') as out:
-            out.write(f'{x+width} {x} {int(y+height/2)}'.encode())
-        return
-
     for file in sorted(glob(args.readfrom)):
-        if 'super8' == args.film:
-            (_,x,y,width,height) = findSprocketS8(logger, cv2.imread(file, cv2.IMREAD_ANYCOLOR), hires=True, savework=args.savework)
-        else:
-            (_,x,y,width,height) = findSprocket8mm(logger, cv2.imread(file, cv2.IMREAD_ANYCOLOR), hires=True, savework=args.savework)
-        inccount()
         writeto = os.path.splitext(os.path.basename(file))[0]
-        if not os.path.exists(writeto):
-            with open(f'{realpath}/{writeto}.reg','wb') as out:
-                out.write(f'{x+width} {x} {int(y+height/2)}'.encode())
+        if os.path.exists(writeto):
+            inccount()
+            continue
+        if 'super8' == args.film:
+            (_,x,y,width,height) = findSprocketS8(logger, cv2.imread(file, cv2.IMREAD_ANYCOLOR), hires=True, savework=args.savework, saveallwork=args.saveallwork)
+        else:
+            (_,x,y,width,height) = findSprocket8mm(logger, cv2.imread(file, cv2.IMREAD_ANYCOLOR), hires=True, savework=args.savework, saveallwork=args.saveallwork)
+        inccount()
+        with open(f'{realpath}/{writeto}.reg','wb') as out:
+            out.write(f'{int(y+height/2)}'.encode())
+            #out.write(f'{x+width} {x} {int(y+height/2)}'.encode())
 
 main()

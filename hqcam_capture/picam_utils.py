@@ -126,7 +126,7 @@ def findSprocket8mm(logger, image, hires=False, savework=False,saveallwork=False
 
     def whtest_hires(rect):
 #        (_,_,w,h) = cv2.boundingRect(contour)
-        return (303 < rect['h'] < 330)
+        return (303 < rect['h'] < 340)
         #return (437 < w < 457) & (313 < h < 333)
 
     logger.debug('Image Average {}'.format(np.average(image3)))
@@ -147,14 +147,19 @@ def findSprocket8mm(logger, image, hires=False, savework=False,saveallwork=False
     logger.debug(f'Found {len(frects)} filtered rects')
     if 1 != len(frects):
         # None of the contours pass the size filter, likely because light
-        # leaking around the sprocket is throwing off the size detection. See
-        # if we can synthesize something.
-        logger.info('Synthesizing rects')
-        for r in rects:
-            if r['y'] > 0 and r['h'] > 330:
-                r['h'] = 320
-                frects = [r]
+        # leaking around the sprocket when the film was recorded is
+        # throwing off the size detection. See if we can synthesize something.
+        logger.info(f'Synthesizing rects for frame {count}')
+        ones = np.full_like(image3[0], 255)
+        for ii in range(0, 500):
+            if all(image3[ii] == ones):
                 break
+        logger.debug(f'found ones at row {ii}')
+        for jj in range(ii,500):
+            if not all(image3[jj] == ones):
+                break
+        logger.debug(f'end of ones at row {jj}')
+        frects = [{'x':0, 'y':ii, 'w':200, 'h':jj-ii}]
 
     if 1 != len(frects):
         dumpSaved(savedwork)

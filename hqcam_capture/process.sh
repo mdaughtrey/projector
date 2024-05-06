@@ -14,10 +14,16 @@ DEVICE=/dev/video0
 #VIDEOSIZE=3264x2448
 #VIDEOSIZE=640x480
 VIDEOSIZE=1280x720
+
 # Extended Dynamic Range
 EXPOSURES="5000,10000,16000,22000"
 IFS=, read -ra EXPOSE <<<${EXPOSURES}
 EDR="--exposure ${EXPOSURES}"
+
+GLOB_REGISTRATION='????????_'${EXPOSE[1]}'.png'
+#GLOB_REGISTRATION='00000004_10000.png'
+#GLOB_CAR='????????_'${EXPOSE[1]}'.reg'
+GLOB_CAR='00000004_10000.reg'
 
 #exec > >(tee -a usb_${OP}_$(TZ= date +%Y%m%d%H%M%S).log) 2>&1
 #exec > >(tee -a process.log) 2>&1
@@ -165,7 +171,9 @@ tonefuse()
         number=$(echo $name | cut -d_ -f1)
         input="${FP}/car/${number}_${EXPOSE[1]}.png ${FP}/car/${number}_${EXPOSE[2]}.png ${FP}/car/${number}_${EXPOSE[3]}.png"  
         output=${FP}/fused/$(printf '%08u' $outputnum).png
-        enfuse --output $output $input
+	if [[ ! -f "$output" ]]; then
+	        enfuse --output $output $input
+	fi
         ((outputnum++))
     done
 
@@ -272,14 +280,10 @@ case "$1" in
     ptf) ptf ;;
     clean) clean $2 ;;
     cfp) scp -r projector:/media/frames/${PROJECT} /mnt/s/frames ;;
-    #registration) ./00_registration.py --readfrom ${FP}/capture/'*.png' --writeto ${FP}/capture \
-    #    --debugto ${FP}/capdebug --imageglob '000000[67]??';;
-    registration) ./00_registration.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.png' --writeto ${FP}/capture --film ${FILM}  --savework ;;
+    registration) ./00_registration.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.png'  --writeto ${FP}/capture --film ${FILM} ;;
     regsum) doregsum ;;
-#        --onefile ${FP}/capture/00000001_16000.png --film ${FILM};;
-#        ;; #  --debugto ${FP}/capdebug ;;
-#      | tee registration.log ;; #   --onefile ${FP}/capture/00000003_20000.png ;;
     car) ./01_crop_and_rotate.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} --film ${FILM} ;;
+    #car) ./01_crop_and_rotate.py --readfrom ${FP}/capture/'00000004_'${EXPOSE[1]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} --film ${FILM} ;;
     tf) tonefuse ;;
     cam) cam ;;
     ef) doenfuse ;;
