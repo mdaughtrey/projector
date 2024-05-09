@@ -8,7 +8,6 @@ import logging
 from   logging import FileHandler, StreamHandler
 import numpy as np
 import os
-import pdb
 from picam_utils import *
 from PIL import Image,ImageDraw,ImageFilter,ImageOps
 import re

@@ -6,7 +6,7 @@
 # 3. 8mm or S8
 
 PORT=/dev/ttyACM0
-PROJECT=fm117
+PROJECT=fm110
 FILM=8mm
 FRAMES=${PWD}/frames/
 FP=${FRAMES}/${PROJECT}
@@ -47,8 +47,8 @@ s8()
 
 mm8()
 {
-    ./picam_cap.py framecap --framesto ${FP}/capture --frames 4600 --logfile picam_cap.log \
-        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33
+    ./picam_cap.py framecap --framesto ${FP}/capture --frames 4 --logfile picam_cap.log \
+        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33 --saveallwork
 }
 
 sertest()
@@ -219,7 +219,13 @@ doregsum()
 
 clean()
 {
-    rm ${FP}/$1/*
+    case "$1" in 
+	    reg) rm ${FP}/capture/*.reg ;;
+	    car) rm ${FP}/car/*.png ;;
+	    fused) rm ${FP}/fused/*.png ;;
+	    video) rm ${FP}/*.mp4 ;;
+	    *) echo what? ;;
+    esac
 }
 
 #setres()
@@ -283,7 +289,7 @@ case "$1" in
     registration) ./00_registration.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.png'  --writeto ${FP}/capture --film ${FILM} ;;
     regsum) doregsum ;;
     car) ./01_crop_and_rotate.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} --film ${FILM} ;;
-    #car) ./01_crop_and_rotate.py --readfrom ${FP}/capture/'00000004_'${EXPOSE[1]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} --film ${FILM} ;;
+    #car) ./01_crop_and_rotate.py --readfrom ${FP}/capture/'00004120_'${EXPOSE[1]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} --film ${FILM} ;;
     tf) tonefuse ;;
     cam) cam ;;
     ef) doenfuse ;;

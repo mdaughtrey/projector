@@ -7,7 +7,6 @@ import logging
 from logging import FileHandler, StreamHandler
 from matplotlib import pyplot as plt
 import numpy as np
-import pdb
 try:
     from picamera2 import Picamera2, Preview
 except:
@@ -85,6 +84,9 @@ def findSprocket8mm(logger, image, hires=False, savework=False,saveallwork=False
     origy,origx = image.shape[:2]
     if saveallwork:
         savework = True
+    savedwork = {}
+    if savework:
+        savedwork['input'] = image.copy()
 
     if hires:
         xOffset = 350
@@ -93,7 +95,6 @@ def findSprocket8mm(logger, image, hires=False, savework=False,saveallwork=False
         xOffset = 97
         image = image[0:170, xOffset:160]
 
-    savedwork = {}
     if savework:
         savedwork['sliced'] = image.copy()
 #        cv2.imwrite(f'/tmp/{count}_sliced.png', image)
@@ -139,31 +140,36 @@ def findSprocket8mm(logger, image, hires=False, savework=False,saveallwork=False
         rects.append({'x':x, 'y':y, 'w':width, 'h':height})
         logger.debug(f'x {x} y {y} width {width} height {height}')
 
-
     if hires:
         frects = list(filter(whtest_hires, rects))
     else:
         frects = list(filter(whtest_lores, rects))
     logger.debug(f'Found {len(frects)} filtered rects')
     if 1 != len(frects):
-        # None of the contours pass the size filter, likely because light
-        # leaking around the sprocket when the film was recorded is
-        # throwing off the size detection. See if we can synthesize something.
-        logger.info(f'Synthesizing rects for frame {count}')
-        ones = np.full_like(image3[0], 255)
-        for ii in range(0, 500):
-            if all(image3[ii] == ones):
-                break
-        logger.debug(f'found ones at row {ii}')
-        for jj in range(ii,500):
-            if not all(image3[jj] == ones):
-                break
-        logger.debug(f'end of ones at row {jj}')
-        frects = [{'x':0, 'y':ii, 'w':200, 'h':jj-ii}]
+        if hires:
+            # None of the contours pass the size filter, likely because light
+            # leaking around the sprocket when the film was recorded is
+            # throwing off the size detection. See if we can synthesize something.
+            logger.info(f'Synthesizing rects for frame {count}')
+            ones = np.full_like(image3[0], 255)
+            # Start in the middle and move up and down
+            boundary = 125
+            for smin in range(boundary,-1,-1):
+                if not all(image3[smin] == ones):
+                    break
+            logger.debug(f'Upper bound is row {smin}')
+            for smax in range(1+boundary,image3.shape[0]):
+                if not all(image3[smax] == ones):
+                    break
+            logger.debug(f'Upper bound is row {smax}')
 
-    if 1 != len(frects):
-        dumpSaved(savedwork)
-        return (False, 0, 0, 0, 0)
+            frects = [{'x':0, 'y':smin, 'w':200, 'h':smax-smin}]
+
+        if 1 != len(frects):
+            dumpSaved(savedwork)
+            return (False, 0, 0, 0, 0)
+        else:
+            return (False, 0, 0, 0, 0)
 
 #    for c in contours:
 #        logger.debug('Post filter Area: ' + str(cv2.contourArea(c)))
