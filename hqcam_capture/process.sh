@@ -16,7 +16,7 @@ DEVICE=/dev/video0
 VIDEOSIZE=1280x720
 
 # Extended Dynamic Range
-EXPOSURES="5000,10000,16000,22000"
+EXPOSURES="16000,10000,16000,22000"
 IFS=, read -ra EXPOSE <<<${EXPOSURES}
 EDR="--exposure ${EXPOSURES}"
 
@@ -27,6 +27,11 @@ GLOB_CAR='00000004_10000.reg'
 
 #exec > >(tee -a usb_${OP}_$(TZ= date +%Y%m%d%H%M%S).log) 2>&1
 #exec > >(tee -a process.log) 2>&1
+
+if [[ ~ $(mount | grep '/media/frames' ]]; then
+	echo '*** SSD is not mounted'
+	exit 1
+fi
 
 mkdir -p ${FP}
 
@@ -47,8 +52,8 @@ s8()
 
 mm8()
 {
-    ./picam_cap.py framecap --framesto ${FP}/capture --frames 4 --logfile picam_cap.log \
-        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33 --saveallwork
+    ./picam_cap.py framecap --framesto ${FP}/capture --frames 4600 --logfile picam_cap.log \
+        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33 
 }
 
 sertest()

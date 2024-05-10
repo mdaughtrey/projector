@@ -122,7 +122,7 @@ def findSprocket8mm(logger, image, hires=False, savework=False,saveallwork=False
 
     def whtest_lores(rect):
 #        (_,_,w,h) = cv2.boundingRect(contour)
-        return (100 < rect['h'] < 120)
+        return (120 < rect['h'] < 140)
         #return (110 < w < 130) & (100 < h < 120)
 
     def whtest_hires(rect):
