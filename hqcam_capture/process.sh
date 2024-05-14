@@ -16,7 +16,7 @@ DEVICE=/dev/video0
 VIDEOSIZE=1280x720
 
 # Extended Dynamic Range
-EXPOSURES="16000,10000,16000,22000"
+EXPOSURES="12000,2000,4500,7000"
 IFS=, read -ra EXPOSE <<<${EXPOSURES}
 EDR="--exposure ${EXPOSURES}"
 
@@ -28,7 +28,7 @@ GLOB_CAR='00000004_10000.reg'
 #exec > >(tee -a usb_${OP}_$(TZ= date +%Y%m%d%H%M%S).log) 2>&1
 #exec > >(tee -a process.log) 2>&1
 
-if [[ ~ $(mount | grep '/media/frames' ]]; then
+if [[ ! $(mount | grep '/media/frames') ]]; then
 	echo '*** SSD is not mounted'
 	exit 1
 fi
@@ -53,7 +53,7 @@ s8()
 mm8()
 {
     ./picam_cap.py framecap --framesto ${FP}/capture --frames 4600 --logfile picam_cap.log \
-        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33 
+        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33 --saveallwork
 }
 
 sertest()
@@ -89,7 +89,7 @@ praw()
     subdir=${1:-capture}
 #    IFS=, read -ra exs <<<${EXPOSURES}
     ffmpeg -f image2 -r 18 -pattern_type glob -i "${FP}/${subdir}/????????_${EXPOSE[1]}.png" \
-        -vcodec libx264 -vf scale=640x480 -y ${FP}/${PROJECT}_praw.mp4 
+        -vcodec libx264 -vf scale=640x480 -y ${FP}/${PROJECT}_praw.mov
 }
 
 pcar()
@@ -265,12 +265,9 @@ case "$1" in
         ;;
 
     s8) 
-#        rm frames/${PROJECT}/findsprocket/*.png
-#        rm frames/${PROJECT}/capture/*.png
         rm *.log
         s8 
         echo s > ${PORT}
-        mv /tmp/*.png /media/frames/${PROJECT}/findsprocket/
         ;;
     preview) shift; preview $@ ;;
     p2) shift; p2 $@ ;;
@@ -292,6 +289,7 @@ case "$1" in
     clean) clean $2 ;;
     cfp) scp -r projector:/media/frames/${PROJECT} /mnt/s/frames ;;
     registration) ./00_registration.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.png'  --writeto ${FP}/capture --film ${FILM} ;;
+    #registration) ./00_registration.py --readfrom ${FP}/capture/'00000020_'${EXPOSE[1]}'.png'  --writeto ${FP}/capture --film ${FILM} --saveallwork ;;
     regsum) doregsum ;;
     car) ./01_crop_and_rotate.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} --film ${FILM} ;;
     #car) ./01_crop_and_rotate.py --readfrom ${FP}/capture/'00004120_'${EXPOSE[1]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} --film ${FILM} ;;

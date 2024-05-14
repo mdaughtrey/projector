@@ -10,7 +10,6 @@ import numpy as np
 import os
 from picam_utils import *
 from PIL import Image,ImageDraw,ImageFilter,ImageOps
-import pdb
 from    scipy import ndimage
 import sys
 
@@ -44,7 +43,7 @@ def main():
 
     for file in sorted(glob(args.readfrom)):
         writeto = os.path.splitext(os.path.basename(file))[0]
-        if os.path.exists(writeto):
+        if os.path.exists(f'{realpath}/{writeto}.reg'):
             inccount()
             continue
         if 'super8' == args.film:

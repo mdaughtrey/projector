@@ -25,6 +25,7 @@ from picam_utils import *
 #from    PIL import Image, ImageDraw, ImageFilter, ImageOps
 #from    scipy import ndimage
 import  serial
+from SprocketUtils import SprocketUtils
 import sys
 from    Tension import Tension
 import  time
@@ -266,8 +267,7 @@ def framecap(config):
     exposures = list(map(int, config.exposure.split(',')))
 #    init_picam()
 
-    global count
-    count = 0
+    su = SprocketUtils(config, hires=False, saveworkto=config.framesto, logger=logger)
     for framenum in range(config.frames):
         global lastTension
         try:
@@ -277,14 +277,14 @@ def framecap(config):
 
         logger.info(f'Tension {lastTension}')
         serwrite(str(lastTension).encode() + b't')
-        #setExposure(picam, exposures[0])
         setExposure(exposures[0])
         serwrite(b'f') # Forward
 
-    #    picam.switch_mode('exp0')
         try:
-            waitSprocket(logger, camera, config.film, desired = False, savework = config.savework, saveallwork=config.saveallwork)
-            waitSprocket(logger, camera, config.film, desired = True, savework = config.savework, saveallwork=config.saveallwork)
+            su.waitSprocket(camera, desired=False)
+            su.waitSprocket(camera, desired=True)
+#            waitSprocket(logger, camera, config.film, desired = False, savework = config.savework, saveallwork=config.saveallwork)
+#            waitSprocket(logger, camera, config.film, desired = True, savework = config.savework, saveallwork=config.saveallwork)
 
         except RuntimeError as rte:
             logger.error(str(rte))

@@ -17,7 +17,7 @@ import time
 
 count = 0
 
-class FakeLogger:
+class FakeLogger_deprecated:
     DEBUG = 0
     INFO = 0
     WARNING = 0
@@ -54,7 +54,7 @@ def init_picam(exposure:int) -> dict:
     camera['picam'].start()
     return camera
 
-def waitSprocket(logger, picam, film:str, desired:bool, savework:bool=False, saveallwork:bool=False) -> None:
+def waitSprocket_deprecated(logger, picam, film:str, desired:bool, savework:bool=False, saveallwork:bool=False) -> None:
 #    global picam
     global count
     start = time.time()
@@ -71,15 +71,15 @@ def waitSprocket(logger, picam, film:str, desired:bool, savework:bool=False, sav
             return
     raise RuntimeError('timeout')
 
-def inccount():
+def inccount_deprecated():
     global count
     count += 1
 
-def dumpSaved(saved):
+def dumpSaved_deprecated(saved):
     for kk,vv in saved.items():
         cv2.imwrite(f'/tmp/{count}_{kk}.png', vv)
 
-def findSprocket8mm(logger, image, hires=False, savework=False,saveallwork=False):
+def findSprocket8mm_deprecated(logger, image, hires=False, savework=False,saveallwork=False):
     logger.debug(f'frame {count}')
     origy,origx = image.shape[:2]
     if saveallwork:
@@ -110,7 +110,7 @@ def findSprocket8mm(logger, image, hires=False, savework=False,saveallwork=False
 
     logger.debug(str(image3[80]))
 #    low,high = (image3.max() - 10, image3.max())
-    low, high = (250,255)
+    low, high = (245,255)
 
     logger.debug(f'low {low} high {high}')
     image3[image3<low] = 0
@@ -165,8 +165,9 @@ def findSprocket8mm(logger, image, hires=False, savework=False,saveallwork=False
 
             frects = [{'x':0, 'y':smin, 'w':200, 'h':smax-smin}]
 
-        if 1 != len(frects):
+        if saveallwork:
             dumpSaved(savedwork)
+        if 1 != len(frects):
             return (False, 0, 0, 0, 0)
         else:
             return (False, 0, 0, 0, 0)
