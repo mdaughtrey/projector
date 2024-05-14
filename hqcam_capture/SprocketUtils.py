@@ -85,7 +85,7 @@ class SprocketUtils:
             self.savedwork['threshold'] = image3.copy()
 
         def whtest_lores(rect:dict):
-            return (140 < rect['h'])
+            return (140 < rect['h'] < 170)
 
         def whtest_hires(rect:dict):
             return (303 < rect['h'] < 340)
