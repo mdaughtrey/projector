@@ -85,7 +85,7 @@ class SprocketUtils:
             self.savedwork['threshold'] = image3.copy()
 
         def whtest_lores(rect:dict):
-            return (140 < rect['h'] < 170)
+            return (125 < rect['h'] < 145)
 
         def whtest_hires(rect:dict):
             return (303 < rect['h'] < 340)
@@ -170,6 +170,8 @@ class SprocketUtils:
             self.logger.debug(f'inSprocket {inSprocket}, need {str(desired)}')
             if desired == inSprocket:
                 return
+
+        self.__dumpSaved()
         raise RuntimeError('timeout')
 
 

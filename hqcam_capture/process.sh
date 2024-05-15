@@ -16,7 +16,7 @@ DEVICE=/dev/video0
 VIDEOSIZE=1280x720
 
 # Extended Dynamic Range
-EXPOSURES="12000,2000,4500,7000"
+EXPOSURES="12000,3000,5500,8000"
 IFS=, read -ra EXPOSE <<<${EXPOSURES}
 EDR="--exposure ${EXPOSURES}"
 
@@ -52,8 +52,8 @@ s8()
 
 mm8()
 {
-    ./picam_cap.py framecap --framesto ${FP}/capture --frames 4600 --logfile picam_cap.log \
-        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33 
+    ./picam_cap.py framecap --framesto ${FP}/capture --frames 9999 --logfile picam_cap.log \
+        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33  
 }
 
 sertest()
