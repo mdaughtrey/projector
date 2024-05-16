@@ -281,8 +281,8 @@ def framecap(config):
         serwrite(b'f') # Forward
 
         try:
-            su.waitSprocket(camera, desired=True)
             su.waitSprocket(camera, desired=False)
+            su.waitSprocket(camera, desired=True)
 #            waitSprocket(logger, camera, config.film, desired = False, savework = config.savework, saveallwork=config.saveallwork)
 #            waitSprocket(logger, camera, config.film, desired = True, savework = config.savework, saveallwork=config.saveallwork)
 

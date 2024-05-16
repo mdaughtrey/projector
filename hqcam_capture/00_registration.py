@@ -11,6 +11,7 @@ import os
 from picam_utils import *
 from PIL import Image,ImageDraw,ImageFilter,ImageOps
 from    scipy import ndimage
+from SprocketUtils import SprocketUtils
 import sys
 
 args = None
@@ -41,16 +42,18 @@ def main():
         logger.error(f'{args.writeto} does not exist')
         sys.exit(1)
 
+    su = SprocketUtils(args, hires=True, saveworkto=args.writeto, logger=logger)
     for file in sorted(glob(args.readfrom)):
         writeto = os.path.splitext(os.path.basename(file))[0]
         if os.path.exists(f'{realpath}/{writeto}.reg'):
-            inccount()
+            su.inccount()
             continue
-        if 'super8' == args.film:
-            (_,x,y,width,height) = findSprocketS8(logger, cv2.imread(file, cv2.IMREAD_ANYCOLOR), hires=True, savework=args.savework, saveallwork=args.saveallwork)
-        else:
-            (_,x,y,width,height) = findSprocket8mm(logger, cv2.imread(file, cv2.IMREAD_ANYCOLOR), hires=True, savework=args.savework, saveallwork=args.saveallwork)
-        inccount()
+        (_,x,y,width,height) = su.findfunc()(cv2.imread(file, cv2.IMREAD_ANYCOLOR))
+#        if 'super8' == args.film:
+#            (_,x,y,width,height) = findSprocketS8(logger, cv2.imread(file, cv2.IMREAD_ANYCOLOR), hires=True, savework=args.savework, saveallwork=args.saveallwork)
+#        else:
+#            (_,x,y,width,height) = findSprocket8mm(logger, cv2.imread(file, cv2.IMREAD_ANYCOLOR), hires=True, savework=args.savework, saveallwork=args.saveallwork)
+        su.inccount()
         with open(f'{realpath}/{writeto}.reg','wb') as out:
             out.write(f'{int(y+height/2)}'.encode())
             #out.write(f'{x+width} {x} {int(y+height/2)}'.encode())
