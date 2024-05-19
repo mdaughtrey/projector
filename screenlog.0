@@ -1,0 +1,59 @@
+initPWM
+slice is 0
+{State:Ready}
+-------------------------------
+param 0
+PINPOLL 1
+encoderTO: 30000
+encoderTime: 0
+huntState: 0
+filmState: 0
+tension 0 tensionTime 0 tensionTO60000
+verbose: 0
+stepper.minInterval 0 stepper.maxInterval 0
+Current SensorVoltage: 19.3600 V
+Shunt Voltage: 164.1800 mV
+Current: 1.6033 A
+Power: 328.3600 W
+End Config
+-------------------------------------------------------
+
+?: dump config
+-: param *= -1
+a: fan on
+A: fan off
+b: Autotension
+c: param = 0
+f: Forward
+h: help
+i: Initialize with string
+ : reset config
+l: lamp on
+L: lamp off
+m: encoder pos = 0
+n: next (until encoderlimit)
+o: next timeout (param)
+p: PWM menu
+r: Rewind (slow)
+s: Stop
+t: tension (param)
+T: tension 0
+v: verbose 0-1 (param)
+w: monitoring on
+W: monitoring off
+x: set tension timeout (param)
+initPWM
+slice is 0
+{State:Ready}
+initPWM
+slice is 0
+{State:Ready}
+initPWM
+slice is 0
+{State:Ready}
+initPWM
+slice is 0
+{State:Ready}
+initPWM
+slice is 0
+{State:Ready}
