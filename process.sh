@@ -6,7 +6,7 @@
 # 3. 8mm or S8
 
 PORT=/dev/ttyACM0
-PROJECT=fm110
+PROJECT=fm113
 FILM=8mm
 FRAMES=${PWD}/frames/
 FP=${FRAMES}/${PROJECT}
@@ -35,7 +35,7 @@ fi
 
 mkdir -p ${FP}
 
-for sd in car capture fused graded descratch work capdebug findsprocket; do
+for sd in car capture fused; do
     if [[ ! -d "${FP}/${sd}" ]]; then mkdir -p ${FP}/${sd}; fi
 done
 
@@ -47,13 +47,13 @@ getcamdev()
 s8()
 {
     ./picam_cap.py framecap --framesto ${FP}/capture --frames 3600 --logfile picam_cap.log \
-        --film super8 --exposure ${EXPOSURES} --startdia 57 --enddia 33
+        --film super8 --exposure ${EXPOSURES} --startdia 57 --enddia 33 
 }
 
 mm8()
 {
     ./picam_cap.py framecap --framesto ${FP}/capture --frames 5000 --logfile picam_cap.log \
-        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33 
+        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33 --debugpy
 }
 
 sertest()
@@ -89,7 +89,7 @@ praw()
     subdir=${1:-capture}
 #    IFS=, read -ra exs <<<${EXPOSURES}
     ffmpeg -f image2 -r 18 -pattern_type glob -i "${FP}/${subdir}/????????_${EXPOSE[1]}.png" \
-        -vcodec libx264 -vf scale=640x480 -y ${FP}/${PROJECT}_praw.mp4
+        -vcodec libx264 -pix_fmt yuv420p -vf scale=640x480 -y ${FP}/${PROJECT}_praw.mp4
 }
 
 pcar()
@@ -97,13 +97,13 @@ pcar()
     subdir=${1:-car}
     IFS=, read -ra exs <<<${EXPOSURES}
     ffmpeg -f image2 -r 18 -pattern_type glob -i "${FP}/${subdir}/????????_${exs[1]}.png" \
-        -vcodec libx264 -vf scale=640x480 -y ${FP}/${PROJECT}_pcar_${exs[1]}.mp4 
+        -vcodec libx264 -pix_fmt yuv420p -vf scale=640x480 -y ${FP}/${PROJECT}_pcar_${exs[1]}.mp4 
 }
 
 ptf()
 {
     ffmpeg -f image2 -r 18 -pattern_type glob -i "${FP}/fused/*.png" \
-        -vcodec libx264 -vf scale=640x480 -y ${FP}/${PROJECT}_fused.mp4 
+        -vcodec libx264 -pix_fmt yuv420p -vf scale=640x480 -y ${FP}/${PROJECT}_fused.mp4 
 }
 
 getres()
@@ -233,8 +233,16 @@ clean()
     esac
 }
 
+capturevid()
+{
+    echo 'c90tlf' > ${PORT}
+    libcamera-vid --width 640 --height 480 --preview --framerate 10 --output ${FP}/camvideo.mp4 --timeout 500000
+    echo s > ${PORT}
+# {ffmpeg -i camvideo.mp4 captured_video/%06d.png
+
+}
+
 #setres()
-#{
 #    v4l2-ctl --device $(getdev)  --set-fmt-video=width=2592,height=1944
 #}
 
@@ -288,16 +296,18 @@ case "$1" in
     ptf) ptf ;;
     clean) clean $2 ;;
     cfp) scp -r projector:/media/frames/${PROJECT} /mnt/s/frames ;;
-    registration) ./00_registration.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.png'  --writeto ${FP}/capture --film ${FILM} ;;
+    registration) ./00_registration.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.png'  --writeto ${FP}/capture --film ${FILM} --debugpy ;;
 #        --saveallwork --saveworkto ${FP}/findsprocket --debugpy ;;
     #registration) ./00_registration.py --readfrom ${FP}/capture/'00000020_'${EXPOSE[1]}'.png'  --writeto ${FP}/capture --film ${FILM} --saveallwork ;;
     regsum) doregsum ;;
-    car) ./01_crop_and_rotate.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} --film ${FILM} ;;
+    car) ./01_crop_and_rotate.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} --film ${FILM} --debugpy;;
 #        --markonly --annotate ;;
     #car) ./01_crop_and_rotate.py --readfrom ${FP}/capture/'00004120_'${EXPOSE[1]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} --film ${FILM} ;;
     tf) tonefuse ;;
     cam) cam ;;
     ef) doenfuse ;;
+    capvid) capturevid ;;
+    tsd) ./test_sprocket_detect.py framecap --useframes ${FP}/captured_video/'*.png' --debugpy --film 8mm --framesto ${FP}/capture --logfile tsd.log ;;
     *) echo what?
 esac
 

@@ -121,7 +121,7 @@ def pcl_framecap():
     parser.add_argument('--serdev', dest='serdev', default='/dev/ttyACM0', help='Serial device')
     parser.add_argument('--exposure', dest='exposure', help='EDR exposure a,b,[c,..]')
     parser.add_argument('--startdia', dest='startdia', type=int, default=62, help='Feed spool starting diameter (mm)')
-#    parser.add_argument('--camsprocket', dest='camsprocket', action='store_true', help='Use in-camera sprocket detection')
+    parser.add_argument('--debugpy', dest='debugpy', action='store_true', help='enable debugpy')
     return parser.parse_args()
 
 def pcl_exptest():
@@ -361,7 +361,14 @@ def main():
         print(f'Unknown command {sys.argv[1]}')
         sys.exit(1)
 
-    if 'exptest' == config.do: exptest(config)
+    if config.debugpy:
+        import debugpy
+        debugpy.listen(5678)
+        print('Waiting for debugger attach')
+        debugpy.wait_for_client()
+        debugpy.breakpoint()
+
+#    if 'exptest' == config.do: exptest(config)
     if 'framecap' == config.do:
         framecap(config)
         with open(config.logfile,'wb') as logto:

@@ -11,6 +11,7 @@ try:
 except:
     print("No picamera library found")
 
+from glob import glob, iglob
 from scipy import ndimage
 import time
 
@@ -42,7 +43,10 @@ class SprocketUtils:
         self.saveworkto = saveworkto
         self.count = 0
         if '8mm' == self.film:
-            self.__findfunc = partial(SprocketUtils.__findSprocket8mm_contours,self)
+            if self.hires:
+                self.__findfunc = partial(SprocketUtils.__findSprocket8mm_contours,self)
+            else:
+                self.__findfunc = partial(SprocketUtils.__findSprocket8mm_window,self)
 #            self.mask = cv2.imread('/tmp/mask.png',cv2.IMREAD_GRAYSCALE)
 #            self.mask[self.mask == 255] = 1
         else:
@@ -51,14 +55,59 @@ class SprocketUtils:
     def __dumpSaved(self) -> None:
         for kk,vv in self.savedwork.items():
             cv2.imwrite(f'{self.saveworkto}/{self.count}_{kk}.png', vv)
+ 
+    def __findSprocket8mm_window(self,image) -> None:
+        self.logger.debug(f'frame {self.count}')
+        origy,origx = image.shape[:2]
+        if self.saveallwork:
+            self.savework = True
+
+        if self.hires:
+            xOffset = 350
+            image = image[0:500, xOffset:550]
+        else:
+            winX,winY,winW,winH = (50,20,120,60)
+            if self.savework:
+                self.savedwork['input'] = image.copy()
+                cv2.rectangle(self.savedwork['input'], (winX,winY),(winX+winW,winY+winH), (255,255,255),1)
+#            cv2.rectangle(image, (winX+1,winY+1),(winX+winW,winY+winH), (0,0,0),1)
+            image = image[winY:winY+winH, winX:winX+winW]
+
+        if self.savework:
+            self.savedwork['sliced'] = image.copy()
+
+        image2 = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        image3 = np.asarray(image2, dtype=np.uint8)
+#        image3 = ndimage.grey_erosion(image3, size=(5,5))
+        if self.savework:
+            self.savedwork['eroded'] = image3.copy()
+
+        self.logger.debug(str(image3[int(winH/2)]))
+        low, high = (235,255)
+
+        self.logger.debug(f'low {low} high {high}')
+        image3[image3<low] = 0
+        image3[image3>high] = 0
+        image3[image3 != 0] = 255 
+        if self.savework: 
+            self.savedwork['threshold'] = image3.copy()
+
+#        testagainst = np.full_like(image3,255)
+        test = np.array_equal(image3,np.full_like(image3,255))
+        self.logger.debug(f'test {test}')
+        if test:
+            return (True,winX,winY,winW,winH)
+        else:
+            return (False,0,0,0,0)
+
 
     def __findSprocket8mm_contours(self,image) -> None:
         self.logger.debug(f'frame {self.count}')
         origy,origx = image.shape[:2]
         if self.saveallwork:
             self.savework = True
-#        if self.savework:
-#            self.savedwork['input'] = image.copy()
+        if self.savework:
+            self.savedwork['input'] = image.copy()
 
         if self.hires:
             xOffset = 350
@@ -88,18 +137,20 @@ class SprocketUtils:
             self.savedwork['threshold'] = image3.copy()
 
         def whtest_lores(rect:dict):
-            return (125 < rect['h'] < 145)
+            return (125 < rect['h'] < 145) and 63 == rect['w']
 
         def whtest_hires(rect:dict):
-            return (300 < rect['h'] < 400)
+            return (230 < rect['h'] < 400)
 
 #        self.logger.debug('Image Average {}'.format(np.average(image3)))
 
         # Find the contours in the thresholded image
         contours, _ = cv2.findContours(image3, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         rects = [dict(zip(('x','y','w','h'),cv2.boundingRect(c))) for c in contours]
+        if 0 == len(rects):
+            pass
         for r in rects:
-            self.logger.debug(f"height {r['h']}")
+            self.logger.debug(str(r))
         _ = map(lambda x: self.logger.debug(str(x)),rects)
 #        rects = []
 #        for c in contours:
@@ -134,8 +185,9 @@ class SprocketUtils:
 
             if self.saveallwork:
                 self.__dumpSaved()
-            if 1 != len(frects):
-                return (False, 0, 0, 0, 0)
+
+        if 1 != len(frects):
+            return (False, 0, 0, 0, 0)
 #            else:
 #                return (False, 0, 0, 0, 0)
 
@@ -171,6 +223,7 @@ class SprocketUtils:
         start = time.time()
         while (time.time() - start) < 5.0:
             buffer = picam.capture_array("lores")
+#            buffer = cv2.imread('/media/frames/fm110/capture/)
             self.count += 1
 #            self.logger.debug(str(picam.capture_metadata()))
             inSprocket = self.__findfunc(buffer)[0]
@@ -180,7 +233,3 @@ class SprocketUtils:
 
         self.__dumpSaved()
         raise RuntimeError('timeout')
-
-
-
-

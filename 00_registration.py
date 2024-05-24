@@ -41,7 +41,7 @@ def main():
         print('Waiting for debugger attach')
         debugpy.wait_for_client()
         debugpy.breakpoint()
-    logger = setLogging('registration', '00_registration.log', logging.DEBUG)['logger']
+    logger = setLogging('registration', '00_registration.log', logging.INFO)['logger']
     if args.readfrom and not os.path.exists(os.path.dirname(args.readfrom)):
         logger.error(f'{args.readfrom} does not exist')
         sys.exit(1)
