@@ -28,7 +28,8 @@ def procargs():
     parser.add_argument('--exposures', dest='exposures', help='exposures', required=True)
     parser.add_argument('--film', dest='film', choices=['super8','8mm'], help='8mm/super8', required=True)
     parser.add_argument('--debugpy', dest='debugpy', action='store_true', help='enable debugpy')
-    parser.add_argument('--yoffset', dest='yOffset', type=int, default=0)
+    parser.add_argument('--yoffset', dest='yoffset', type=int, default=0)
+    parser.add_argument('--ysize', dest='ysize', type=int, default=1080)
     return parser.parse_args()
 
 def proctoml():
@@ -49,7 +50,7 @@ def getRectS8(leftX, centerY):
     return boxLeft,boxRight,boxTop,boxBot
 
 def getRect8mm(centerY):
-    return (450,2100,centerY+args.yoffset,centerY+args.yoffset+1080)
+    return (450,2100,centerY+args.yoffset,centerY+args.yoffset+args.ysize)
 #    boxLeft = int(leftX) + 180
 #    boxRight = boxLeft + 1520
 #    boxTop = int(centerY) - 160

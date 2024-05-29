@@ -66,7 +66,7 @@ class SprocketUtils:
             xOffset = 350
             image = image[0:500, xOffset:550]
         else:
-            winX,winY,winW,winH = (50,20,120,60)
+            winX,winY,winW,winH = (50,20,110,60)
             if self.savework:
                 self.savedwork['input'] = image.copy()
                 cv2.rectangle(self.savedwork['input'], (winX,winY),(winX+winW,winY+winH), (255,255,255),1)
