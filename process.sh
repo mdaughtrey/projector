@@ -6,7 +6,7 @@
 # 3. 8mm or S8
 
 PORT=/dev/ttyACM0
-PROJECT=fm107
+PROJECT=fm101
 FILM=8mm
 FRAMES=${PWD}/frames/
 FP=${FRAMES}/${PROJECT}
@@ -271,7 +271,7 @@ case "$1" in
     dev) ffmpeg -devices ;;
     getdev) getdev ;;
     getres) getres ;;
-    mktf) ffmpeg -f image2 -r 18 -pattern_type glob -i "${FP}/fused/*.png" -c:v copy ${FP}/${FP}_fused.mkv;
+    mktf) ffmpeg -f image2 -r 18 -pattern_type glob -i "${FP}/fused/*.png" -c:v copy ${FP}/${FP}_fused.mkv ;;
     mount) mount ;;
     oneshot) oneshot ;;
     p2) shift; p2 $@ ;;
