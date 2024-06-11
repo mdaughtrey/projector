@@ -6,7 +6,7 @@
 # 3. 8mm or S8
 
 PORT=/dev/ttyACM0
-PROJECT=fm101
+PROJECT=fm121
 FILM=8mm
 FRAMES=${PWD}/frames/
 FP=${FRAMES}/${PROJECT}
@@ -39,6 +39,16 @@ for sd in car capture fused; do
     if [[ ! -d "${FP}/${sd}" ]]; then mkdir -p ${FP}/${sd}; fi
 done
 
+
+writeconfig()
+{
+    cat <<CFGEOF > ${FP}/config.toml
+[car]
+yoffset = -32
+ysize = 1120
+CFGEOF
+}
+
 getcamdev()
 {
     echo "/dev/video4"
@@ -52,6 +62,7 @@ s8()
 
 mm8()
 {
+    writeconfig
     ./picam_cap.py framecap --framesto ${FP}/capture --frames 5000 --logfile picam_cap.log \
         --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33 
 }
@@ -250,7 +261,12 @@ capturevid()
 
 case "$1" in 
     8mm) mm8; echo s > ${PORT} ;;
-    all) s8; ./colorgrade.py; descratch; previews ;;
+    all) mm8
+        echo s > ${PORT}
+        registration
+        ./01_crop_and_rotate.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} --film ${FILM} 
+        tonefuse
+        ptf ;;
     avx) ./avx.sh ;;
     cam) cam ;;
     cap1bmp) 
