@@ -5,6 +5,7 @@ try:
 except:
     print("No libcamera library found")
 import numpy as np
+import os
 from scipy import ndimage
 try:
     from picamera2 import Picamera2, Preview
@@ -14,6 +15,7 @@ except:
 from glob import glob, iglob
 from scipy import ndimage
 import time
+import tomllib
 
 class MockLogger:
     DEBUG = 0
@@ -52,6 +54,13 @@ class SprocketUtils:
         else:
             self.__findfunc = partial(SprocketUtils.__findSprocketS8,self)
 
+    def __proctoml(self) -> {}:
+        if not os.path.exists(tname := f'{os.path.dirname(self.saveworkto)}/config.toml'):
+            return {}
+        with open(tname,'rb') as tfile:
+            return tomllib.load(tfile)
+
+
     def __dumpSaved(self) -> None:
         for kk,vv in self.savedwork.items():
             cv2.imwrite(f'{self.saveworkto}/{self.count}_{kk}.png', vv)
@@ -62,11 +71,19 @@ class SprocketUtils:
         if self.saveallwork:
             self.savework = True
 
+        try:
+            winX = int(self.__proctoml()['capture']['winx'])
+            winW = int(self.__proctoml()['capture']['winw'])
+        except:
+            winX = 50
+            winW = 110
+
+
         if self.hires:
             xOffset = 350
             image = image[0:500, xOffset:550]
         else:
-            winX,winY,winW,winH = (50,20,110,60)
+            winY,winH = (20,60)
             if self.savework:
                 self.savedwork['input'] = image.copy()
                 cv2.rectangle(self.savedwork['input'], (winX,winY),(winX+winW,winY+winH), (255,255,255),1)

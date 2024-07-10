@@ -109,6 +109,7 @@ def pcl_framecap():
     parser.add_argument(dest='do')
     parser.add_argument('--debug', dest='debug', action='store_true', help='debug (no crop, show lines)')
     parser.add_argument('--savework', dest='savework', action='store_true', help='show bad working images')
+    parser.add_argument('--saveworkto', dest='saveworkto', help='show bad working images')
     parser.add_argument('--saveallwork', dest='saveallwork', action='store_true', help='show all working images')
     parser.add_argument('--enddia', dest='enddia', type=int, default=35, help='Feed spool ending diameter (mm)')
     parser.add_argument('--fastforward', dest='fastforward', type=int, help='fast forward multiplier', default=8)
@@ -270,7 +271,7 @@ def framecap(config):
 #    init_picam()
 
 
-    su = SprocketUtils(config, hires=False, saveworkto=config.framesto, logger=logger)
+    su = SprocketUtils(config, hires=False, saveworkto=config.saveworkto, logger=logger)
     for framenum in range(config.frames):
         global lastTension
         try:

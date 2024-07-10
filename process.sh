@@ -6,7 +6,7 @@
 # 3. 8mm or S8
 
 PORT=/dev/ttyACM0
-PROJECT=fm121
+PROJECT=fm203
 FILM=8mm
 FRAMES=${PWD}/frames/
 FP=${FRAMES}/${PROJECT}
@@ -35,18 +35,24 @@ fi
 
 mkdir -p ${FP}
 
-for sd in car capture fused; do
+for sd in car capture fused work; do
     if [[ ! -d "${FP}/${sd}" ]]; then mkdir -p ${FP}/${sd}; fi
 done
 
 
 writeconfig()
 {
+    if [[ ! -f "${FP}/config.toml" ]]; then
     cat <<CFGEOF > ${FP}/config.toml
+[capture]
+winx = 50
+
 [car]
 yoffset = -32
 ysize = 1120
 CFGEOF
+
+    fi
 }
 
 getcamdev()
@@ -64,7 +70,8 @@ mm8()
 {
     writeconfig
     ./picam_cap.py framecap --framesto ${FP}/capture --frames 5000 --logfile picam_cap.log \
-        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33 
+        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33 \
+            --savework --saveworkto ${FP}/work
 }
 
 sertest()
@@ -253,6 +260,18 @@ capturevid()
 
 }
 
+car()
+{
+    ./01_crop_and_rotate.py --readfrom ${FP}/capture/'????????_'${EXPOSE[2]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} --film ${FILM}
+}
+
+
+registration()
+{
+    ${PUDB} ./00_registration.py --readfrom ${FP}/capture/'????????_'${EXPOSE[2]}'.png'  --writeto ${FP}/capture --film ${FILM}  
+#        --saveallwork --saveworkto ${FP}/work --debugpy
+}
+
 #setres()
 #    v4l2-ctl --device $(getdev)  --set-fmt-video=width=2592,height=1944
 #}
@@ -262,9 +281,9 @@ capturevid()
 case "$1" in 
     8mm) mm8; echo s > ${PORT} ;;
     all) mm8
-        echo s > ${PORT}
+        echo ' ' > ${PORT}
         registration
-        ./01_crop_and_rotate.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} --film ${FILM} 
+        car
         tonefuse
         ptf ;;
     avx) ./avx.sh ;;
@@ -275,7 +294,7 @@ case "$1" in
         ffmpeg -f v4l2 -framerate 1 -video_size ${VIDEOSIZE} -i ${DEVICE}  -vf fps=10 -y ${FRAMES}/capmjpeg_${VIDEOSIZE}.avi ;;
     caps) ffmpeg -f v4l2 -list_formats all -i $(getdev) ;;
     capvid) capturevid ;;
-    car) ./01_crop_and_rotate.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} --film ${FILM} ;;
+    car) car ;;
     cfp) scp -r projector:/media/frames/${PROJECT} /mnt/s/frames ;;
     clean) clean $2 ;;
     clip) clip ;;
@@ -298,7 +317,7 @@ case "$1" in
     previews) preview capture; preview descratch; preview graded ;;
     ptf) ptf ;;
     raw2img) ffmpeg -i ${FRAMES}/rawout_${VIDEOSIZE}.avi -vf fps=10 ${FRAMES}/frame%d.png ;;
-    registration) ./00_registration.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.png'  --writeto ${FP}/capture --film ${FILM}  ;;
+    registration) registration ;;
     regsum) doregsum ;;
     s8) s8; echo s > ${PORT} ;;
     screen) screen -L ${PORT} 115200 ;;
