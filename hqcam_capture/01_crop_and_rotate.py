@@ -2,16 +2,20 @@
 # coding: utf-8
 
 import argparse
+import asyncio
 import cv2
 from glob import glob, iglob
 import logging
 from   logging import FileHandler, StreamHandler
 import numpy as np
 import os
+import pdb
 from picam_utils import *
 from PIL import Image,ImageDraw,ImageFilter,ImageOps
 import re
 import sys
+import tomllib
+from worker_queue import WorkerQueue
 
 logger = None
 args = None
@@ -24,7 +28,19 @@ def procargs():
     parser.add_argument('--markonly', dest='markonly', help='mark frames', action='store_true', default=False)
     parser.add_argument('--exposures', dest='exposures', help='exposures', required=True)
     parser.add_argument('--film', dest='film', choices=['super8','8mm'], help='8mm/super8', required=True)
+    parser.add_argument('--debugpy', dest='debugpy', action='store_true', help='enable debugpy')
+    parser.add_argument('--yoffset', dest='yoffset', type=int, default=0)
+    parser.add_argument('--ysize', dest='ysize', type=int, default=1080)
     return parser.parse_args()
+
+def proctoml():
+    global args
+    if not os.path.exists(tname := f'{os.path.dirname(args.readfrom)}/../config.toml'):
+        return
+    with open(tname,'rb') as tfile:
+        tdata = tomllib.load(tfile)
+        for kk,vv in tdata['car'].items():
+            args.__setattr__(kk,vv)
 
 def getRectS8(leftX, centerY):
     boxLeft = int(leftX) + 180
@@ -35,7 +51,7 @@ def getRectS8(leftX, centerY):
     return boxLeft,boxRight,boxTop,boxBot
 
 def getRect8mm(centerY):
-    return (720,2010,max(centerY-20,0),centerY+980)
+    return (450,2100,centerY+args.yoffset,centerY+args.yoffset+args.ysize)
 #    boxLeft = int(leftX) + 180
 #    boxRight = boxLeft + 1520
 #    boxTop = int(centerY) - 160
@@ -43,17 +59,17 @@ def getRect8mm(centerY):
 #    return boxLeft,boxRight,boxTop,boxBot
 
 #def cropAndRotate(regfile, imagefile):
-def cropAndRotate(centerY, readfrom, writeto):
+async def cropAndRotate(centerY, readfrom, writeto):
     try:
         image = cv2.imread(readfrom, cv2.IMREAD_ANYCOLOR)
     except Exception as ee:
-        logger.error(f'Error reading from {imagefile}: {str(ee)}')
+        logger.error(f'Error reading from {readfrom}: {str(ee)}')
 
     if 'super8' == args.film:
         boxLeft,boxRight,boxTop,boxBot = getRectS8(centerY)
     else:
         boxLeft,boxRight,boxTop,boxBot = getRect8mm(centerY)
-    height, width = image.shape[:2]
+#    height, width = image.shape[:2]
 #    rMatrix = cv2.getRotationMatrix2D(center=(width/2,height/2),angle=rotate,scale=1)
 #    rImage = cv2.warpAffine(src=image,M=rMatrix,dsize=(width,height))
     logger.debug(writeto)
@@ -62,7 +78,7 @@ def cropAndRotate(centerY, readfrom, writeto):
     rImage = image
     if args.markonly:
 #        cv2.circle(original,(int(avgright),int((avgtop+avgbot)/2)),12,(0,255,0),-1)
-        rImage = cv2.rectangle(rImage, (boxTop, boxLeft), (boxBot, boxRight), (0,255,0), 1)
+        rImage = cv2.rectangle(rImage, (boxLeft, boxTop), (boxRight, boxBot), (0,255,0), 1)
     else:
         rImage = rImage[boxTop:boxBot,boxLeft:boxRight]
     if args.annotate:
@@ -71,14 +87,25 @@ def cropAndRotate(centerY, readfrom, writeto):
         imageNum = os.path.splitext(os.path.basename(readfrom))[0].split('_')[0]
         cv2.putText(rImage, imageNum, org, fontFace = cv2.FONT_HERSHEY_COMPLEX, fontScale = 1.5, color = (250,225,100))
     logger.debug(f'Writing shape {str(rImage.shape)}')
-    cv2.imwrite(writeto, rImage)
+    try:
+        cv2.imwrite(writeto, rImage)
+    except Exception as ee:
+        logger.error(f'Failed writing {writeto}: {str(ee)}')
 
-def main():
+async def main():
     global args
     global logger
     logger = setLogging('car','01_crop_and_rotate.log',logging.INFO)['logger']
     args = procargs()
 
+    if args.debugpy:
+        import debugpy
+        debugpy.listen(5678)
+        print('Waiting for debugger attach')
+        debugpy.wait_for_client()
+        debugpy.breakpoint()
+
+    proctoml()
 #    readpath = os.path.realpath(args.readfrom)
     readpath = args.readfrom
     if not os.path.exists(os.path.dirname(readpath)):
@@ -91,6 +118,7 @@ def main():
         logger.info(f'Creating directory {writepath}')
         os.mkdir(writepath)
 
+    wq = WorkerQueue()
     exposures = [int(x) for x in args.exposures.split(',')]
     for regfile in sorted(glob(readpath)):
         centerY = int(open(regfile.encode(),'rb').read().strip())
@@ -106,8 +134,13 @@ def main():
             #if not os.path.exists(writeto) | 0 == os.path.getsize(writeto):
             if not os.path.exists(writeto):
                 try:
-                    cropAndRotate(centerY, readfrom, writeto)
+                    wq.add_task(cropAndRotate(centerY,readfrom,writeto))
+#                    cropAndRotate(centerY, readfrom, writeto)
                 except Exception as ee:
                     logger.warning(f'Skipping {writeto}: {str(ee)}')
+            
+    while wq.running_task_count > 0:
+        await asyncio.sleep(0.1)
 
-main()
+if __name__ == '__main__':
+    asyncio.run(main())

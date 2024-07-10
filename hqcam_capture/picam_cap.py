@@ -12,6 +12,7 @@ import cv2
 from functools import partial
 from    glob import glob, iglob
 from    itertools import groupby
+from io import StringIO
 import  logging
 from   logging import FileHandler, StreamHandler
 import  math
@@ -108,6 +109,7 @@ def pcl_framecap():
     parser.add_argument(dest='do')
     parser.add_argument('--debug', dest='debug', action='store_true', help='debug (no crop, show lines)')
     parser.add_argument('--savework', dest='savework', action='store_true', help='show bad working images')
+    parser.add_argument('--saveworkto', dest='saveworkto', help='show bad working images')
     parser.add_argument('--saveallwork', dest='saveallwork', action='store_true', help='show all working images')
     parser.add_argument('--enddia', dest='enddia', type=int, default=35, help='Feed spool ending diameter (mm)')
     parser.add_argument('--fastforward', dest='fastforward', type=int, help='fast forward multiplier', default=8)
@@ -120,7 +122,7 @@ def pcl_framecap():
     parser.add_argument('--serdev', dest='serdev', default='/dev/ttyACM0', help='Serial device')
     parser.add_argument('--exposure', dest='exposure', help='EDR exposure a,b,[c,..]')
     parser.add_argument('--startdia', dest='startdia', type=int, default=62, help='Feed spool starting diameter (mm)')
-#    parser.add_argument('--camsprocket', dest='camsprocket', action='store_true', help='Use in-camera sprocket detection')
+    parser.add_argument('--debugpy', dest='debugpy', action='store_true', help='enable debugpy')
     return parser.parse_args()
 
 def pcl_exptest():
@@ -263,11 +265,13 @@ def setExposure(exposure):
 #    raise RuntimeError('timeout')
 
 def framecap(config):
+    global logger
     startframe = get_most_recent_frame(config) + 1
     exposures = list(map(int, config.exposure.split(',')))
 #    init_picam()
 
-    su = SprocketUtils(config, hires=False, saveworkto=config.framesto, logger=logger)
+
+    su = SprocketUtils(config, hires=False, saveworkto=config.saveworkto, logger=logger)
     for framenum in range(config.frames):
         global lastTension
         try:
@@ -337,7 +341,14 @@ def main():
     global logger
     if 'framecap' == sys.argv[1]:
         config = pcl_framecap()
-        logger = setLogging('picam_cap', config.logfile, logging.WARN)['logger']
+        logstream = StringIO()
+        FormatString='%(asctime)s %(levelname)s %(funcName)s %(lineno)s %(message)s'
+        logger = logging.getLogger('picam_cap')
+        logger.setLevel(logging.DEBUG)
+        memlog = StreamHandler(stream = logstream)
+        memlog.setFormatter(logging.Formatter(fmt=FormatString))
+        memlog.setLevel(logging.DEBUG)
+        logger.addHandler(memlog)
         init_framecap(config)
     elif 'exptest' == sys.argv[1]:
         config = pcl_exptest()
@@ -351,9 +362,18 @@ def main():
         print(f'Unknown command {sys.argv[1]}')
         sys.exit(1)
 
-    if 'exptest' == config.do: exptest(config)
+    if config.debugpy:
+        import debugpy
+        debugpy.listen(5678)
+        print('Waiting for debugger attach')
+        debugpy.wait_for_client()
+        debugpy.breakpoint()
+
+#    if 'exptest' == config.do: exptest(config)
     if 'framecap' == config.do:
         framecap(config)
+        with open(config.logfile,'wb') as logto:
+            logto.write(logstream.getvalue().encode())
 
     if 'tonefuse' == config.do: tonefuse(config)
 

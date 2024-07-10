@@ -288,7 +288,7 @@ def setLogging(name:str,logfilename:str,console_level) -> dict:
     logger['logger'].setLevel(logging.DEBUG)
     fileHandler = FileHandler(filename = logfilename)
     fileHandler.setFormatter(logging.Formatter(fmt=FormatString))
-    fileHandler.setLevel(logging.INFO)
+    fileHandler.setLevel(logging.DEBUG)
     logger['logger'].addHandler(fileHandler)
 
     stdioHandler = StreamHandler(sys.stdout)

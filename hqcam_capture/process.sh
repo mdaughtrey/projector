@@ -6,7 +6,7 @@
 # 3. 8mm or S8
 
 PORT=/dev/ttyACM0
-PROJECT=fm110
+PROJECT=fm203
 FILM=8mm
 FRAMES=${PWD}/frames/
 FP=${FRAMES}/${PROJECT}
@@ -35,9 +35,25 @@ fi
 
 mkdir -p ${FP}
 
-for sd in car capture fused graded descratch work capdebug findsprocket; do
+for sd in car capture fused work; do
     if [[ ! -d "${FP}/${sd}" ]]; then mkdir -p ${FP}/${sd}; fi
 done
+
+
+writeconfig()
+{
+    if [[ ! -f "${FP}/config.toml" ]]; then
+    cat <<CFGEOF > ${FP}/config.toml
+[capture]
+winx = 50
+
+[car]
+yoffset = -32
+ysize = 1120
+CFGEOF
+
+    fi
+}
 
 getcamdev()
 {
@@ -47,13 +63,15 @@ getcamdev()
 s8()
 {
     ./picam_cap.py framecap --framesto ${FP}/capture --frames 3600 --logfile picam_cap.log \
-        --film super8 --exposure ${EXPOSURES} --startdia 57 --enddia 33
+        --film super8 --exposure ${EXPOSURES} --startdia 57 --enddia 33 
 }
 
 mm8()
 {
+    writeconfig
     ./picam_cap.py framecap --framesto ${FP}/capture --frames 5000 --logfile picam_cap.log \
-        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33 
+        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33 \
+            --savework --saveworkto ${FP}/work
 }
 
 sertest()
@@ -89,7 +107,7 @@ praw()
     subdir=${1:-capture}
 #    IFS=, read -ra exs <<<${EXPOSURES}
     ffmpeg -f image2 -r 18 -pattern_type glob -i "${FP}/${subdir}/????????_${EXPOSE[1]}.png" \
-        -vcodec libx264 -vf scale=640x480 -y ${FP}/${PROJECT}_praw.mov
+        -vcodec libx264 -pix_fmt yuv420p -vf scale=640x480 -y ${FP}/${PROJECT}_praw.mp4
 }
 
 pcar()
@@ -97,13 +115,13 @@ pcar()
     subdir=${1:-car}
     IFS=, read -ra exs <<<${EXPOSURES}
     ffmpeg -f image2 -r 18 -pattern_type glob -i "${FP}/${subdir}/????????_${exs[1]}.png" \
-        -vcodec libx264 -vf scale=640x480 -y ${FP}/${PROJECT}_pcar_${exs[1]}.mp4 
+        -vcodec libx264 -pix_fmt yuv420p -vf scale=640x480 -y ${FP}/${PROJECT}_pcar_${exs[1]}.mp4 
 }
 
 ptf()
 {
     ffmpeg -f image2 -r 18 -pattern_type glob -i "${FP}/fused/*.png" \
-        -vcodec libx264 -vf scale=640x480 -y ${FP}/${PROJECT}_fused.mp4 
+        -vcodec libx264 -pix_fmt yuv420p -vf scale=640x480 -y ${FP}/${PROJECT}_fused.mp4 
 }
 
 getres()
@@ -233,69 +251,81 @@ clean()
     esac
 }
 
+capturevid()
+{
+    echo 'c90tlf' > ${PORT}
+    libcamera-vid --width 640 --height 480 --preview --framerate 10 --output ${FP}/camvideo.mp4 --timeout 500000
+    echo s > ${PORT}
+# {ffmpeg -i camvideo.mp4 captured_video/%06d.png
+
+}
+
+car()
+{
+    ./01_crop_and_rotate.py --readfrom ${FP}/capture/'????????_'${EXPOSE[2]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} --film ${FILM}
+}
+
+
+registration()
+{
+    ${PUDB} ./00_registration.py --readfrom ${FP}/capture/'????????_'${EXPOSE[2]}'.png'  --writeto ${FP}/capture --film ${FILM}  
+#        --saveallwork --saveworkto ${FP}/work --debugpy
+}
+
 #setres()
-#{
 #    v4l2-ctl --device $(getdev)  --set-fmt-video=width=2592,height=1944
 #}
 
 . venv/bin/activate
 
 case "$1" in 
+    8mm) mm8; echo s > ${PORT} ;;
+    all) mm8
+        echo ' ' > ${PORT}
+        registration
+        car
+        tonefuse
+        ptf ;;
     avx) ./avx.sh ;;
-    dev) ffmpeg -devices ;;
-    caps) ffmpeg -f v4l2 -list_formats all -i $(getdev) ;;
+    cam) cam ;;
     cap1bmp) 
         ffmpeg -f v4l2 -video_size ${VIDEOSIZE} -i $(getdev) -vframes 1 -y ${FRAMES}/%08d.bmp ;;
     capmjpeg) 
         ffmpeg -f v4l2 -framerate 1 -video_size ${VIDEOSIZE} -i ${DEVICE}  -vf fps=10 -y ${FRAMES}/capmjpeg_${VIDEOSIZE}.avi ;;
-    copy) ffmpeg -f v4l2 -video_size ${VIDEOSIZE} -i ${DEVICE} -vcodec copy -y ${FRAMES}/rawout_${VIDEOSIZE}.avi ;;
-    raw2img) ffmpeg -i ${FRAMES}/rawout_${VIDEOSIZE}.avi -vf fps=10 ${FRAMES}/frame%d.png ;;
-    pipe) ffmpeg -f v4l2 -video_size ${VIDEOSIZE} -i ${DEVICE} -vf fps=1 ${FRAMES}/frame%d.png ;;
-    stream) ffmpeg -video_size 640x480 -rtbufsize 702000k -framerate 10 -i video="${DEVICE}" -threads 4 -vcodec libh264 -crf 0 -preset ultrafast -f mpegts "udp://pop-os:56666" ;;
-    getdev) getdev ;;
-    clip) clip ;;
-    descratch) descratch ;;
-    8mm) 
-#        rm frames/${PROJECT}/findsprocket/*.png
-#        rm frames/${PROJECT}/capture/*.png
-        rm *.log
-        mm8
-        echo s > ${PORT}
-#        mv /tmp/*.png /media/frames/${PROJECT}/findsprocket/
-        ;;
-
-    s8) 
-        rm *.log
-        s8 
-        echo s > ${PORT}
-        ;;
-    preview) shift; preview $@ ;;
-    p2) shift; p2 $@ ;;
-    sertest) sertest ;;
-    getres) getres ;;
-    mount) mount ;;
-	gcd) getcamdev ;;
-    previews) preview capture; preview descratch; preview graded ;;
-    all) s8; ./colorgrade.py; descratch; previews ;;
-    exptest) exptest ;;
-    tonefuse) tonefuse ;;
-    oneshot) oneshot ;;
-    screen) screen -L ${PORT} 115200 ;;
-#    setres) setres ;;
-    startvlc) screen -dmS vlc vlc --intf qt --extraintf telnet --telnet-password abc ;;
-    praw) praw ;;
-    pcar) pcar ;;
-    ptf) ptf ;;
-    clean) clean $2 ;;
+    caps) ffmpeg -f v4l2 -list_formats all -i $(getdev) ;;
+    capvid) capturevid ;;
+    car) car ;;
     cfp) scp -r projector:/media/frames/${PROJECT} /mnt/s/frames ;;
-    registration) ./00_registration.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.png'  --writeto ${FP}/capture --film ${FILM} ;;
-    #registration) ./00_registration.py --readfrom ${FP}/capture/'00000020_'${EXPOSE[1]}'.png'  --writeto ${FP}/capture --film ${FILM} --saveallwork ;;
-    regsum) doregsum ;;
-    car) ./01_crop_and_rotate.py --readfrom ${FP}/capture/'????????_'${EXPOSE[1]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} --film ${FILM} ;;
-    #car) ./01_crop_and_rotate.py --readfrom ${FP}/capture/'00004120_'${EXPOSE[1]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} --film ${FILM} ;;
-    tf) tonefuse ;;
-    cam) cam ;;
+    clean) clean $2 ;;
+    clip) clip ;;
+    copy) ffmpeg -f v4l2 -video_size ${VIDEOSIZE} -i ${DEVICE} -vcodec copy -y ${FRAMES}/rawout_${VIDEOSIZE}.avi ;;
+    descratch) descratch ;;
     ef) doenfuse ;;
+    exptest) exptest ;;
+	gcd) getcamdev ;;
+    dev) ffmpeg -devices ;;
+    getdev) getdev ;;
+    getres) getres ;;
+    mktf) ffmpeg -f image2 -r 18 -pattern_type glob -i "${FP}/fused/*.png" -c:v copy ${FP}/${FP}_fused.mkv ;;
+    mount) mount ;;
+    oneshot) oneshot ;;
+    p2) shift; p2 $@ ;;
+    pcar) pcar ;;
+    pipe) ffmpeg -f v4l2 -video_size ${VIDEOSIZE} -i ${DEVICE} -vf fps=1 ${FRAMES}/frame%d.png ;;
+    praw) praw ;;
+    preview) shift; preview $@ ;;
+    previews) preview capture; preview descratch; preview graded ;;
+    ptf) ptf ;;
+    raw2img) ffmpeg -i ${FRAMES}/rawout_${VIDEOSIZE}.avi -vf fps=10 ${FRAMES}/frame%d.png ;;
+    registration) registration ;;
+    regsum) doregsum ;;
+    s8) s8; echo s > ${PORT} ;;
+    screen) screen -L ${PORT} 115200 ;;
+    sertest) sertest ;;
+    startvlc) screen -dmS vlc vlc --intf qt --extraintf telnet --telnet-password abc ;;
+    stream) ffmpeg -video_size 640x480 -rtbufsize 702000k -framerate 10 -i video="${DEVICE}" -threads 4 -vcodec libh264 -crf 0 -preset ultrafast -f mpegts "udp://pop-os:56666" ;;
+    tf) tonefuse ;;
+    tsd) ./test_sprocket_detect.py framecap --useframes ${FP}/captured_video/'*.png' --film 8mm --framesto ${FP}/capture --logfile tsd.log ;;
     *) echo what?
 esac
 
