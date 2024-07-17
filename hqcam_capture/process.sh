@@ -24,6 +24,10 @@ GLOB_REGISTRATION='????????_'${EXPOSE[1]}'.png'
 #GLOB_REGISTRATION='00000004_10000.png'
 #GLOB_CAR='????????_'${EXPOSE[1]}'.reg'
 GLOB_CAR='00000004_10000.reg'
+SAVEWORK='--saveallwork --saveworkto '${FP}'/work'
+#DEBUG='--debugpy'
+DEBUG=''
+
 
 #exec > >(tee -a usb_${OP}_$(TZ= date +%Y%m%d%H%M%S).log) 2>&1
 #exec > >(tee -a process.log) 2>&1
@@ -268,15 +272,17 @@ car()
 
 registration()
 {
-    ${PUDB} ./00_registration.py --readfrom ${FP}/capture/'????????_'${EXPOSE[2]}'.png'  --writeto ${FP}/capture --film ${FILM}  
-#        --saveallwork --saveworkto ${FP}/work --debugpy
+    ./00_registration.py \
+        --readfrom ${FP}/capture/'????????'_${EXPOSE[2]}.png \
+        --writeto ${FP}/capture \
+        --film ${FILM}  ${SAVEWORK} ${DEBUG}
 }
 
 #setres()
 #    v4l2-ctl --device $(getdev)  --set-fmt-video=width=2592,height=1944
 #}
 
-. venv/bin/activate
+#. venv/bin/activate
 
 case "$1" in 
     8mm) mm8; echo s > ${PORT} ;;
@@ -329,5 +335,5 @@ case "$1" in
     *) echo what?
 esac
 
-deactivate
+#deactivate
 
