@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#0./opencvcap.py --serialport /dev/ttyACM0 --camindex 0 --film s8 --framesto ~/share/opencvcap0 --startdia 140 --enddia 80 --res draft
+
 # References:
 # https://datasheets.raspberrypi.com/camera/picamera2-manual.pdf
 # https://github.com/raspberrypi/picamera2/tree/main/picamera2
@@ -115,7 +115,7 @@ def pcl_framecap():
     parser.add_argument('--fastforward', dest='fastforward', type=int, help='fast forward multiplier', default=8)
     parser.add_argument('--film', dest='film', choices=['super8','8mm'], help='8mm/super8', required=True)
     parser.add_argument('--frames', dest='frames', type=int, default=-1, help='Number of frames to capture')
-    parser.add_argument('--framesto', dest='framesto', required=True, help='Target Directory')
+    parser.add_argument('--project', dest='project', required=True, help='Project Directory')
     parser.add_argument('--logfile', dest='logfile', required=True, help='Log file')
     parser.add_argument('--optocount', dest='optocount', type=int, default=int(steps_per_frame/10), help='optocount per frame')
     parser.add_argument('--res', dest='res', type=int, choices=range(len(res)), default=0, help='resolution select [0-{}]'.format(len(res)-1))
@@ -125,23 +125,23 @@ def pcl_framecap():
     parser.add_argument('--debugpy', dest='debugpy', action='store_true', help='enable debugpy')
     return parser.parse_args()
 
-def pcl_exptest():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--camindex', dest='camindex', help='Camera Index (/dev/videoX)', default=0)
-    parser.add_argument(dest='do')
-    parser.add_argument('--debug', dest='debug', action='store_true', help='debug (no crop, show lines)')
-    parser.add_argument('--framesto', dest='framesto', required=True, help='Target Directory')
-    parser.add_argument('--logfile', dest='logfile', required=True, help='Log file')
-    parser.add_argument('--nofilm', dest='nofilm', default=False, action='store_true', help="no film")
-    parser.add_argument('--res', dest='res', type=int, choices=range(len(res)), default=0, help='resolution select [0-{}]'.format(len(res)-1))
-    parser.add_argument('--serdev', dest='serdev', default='/dev/ttyACM0', help='Serial device')
-    return parser.parse_args()
+# def pcl_exptest():
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument('--camindex', dest='camindex', help='Camera Index (/dev/videoX)', default=0)
+#     parser.add_argument(dest='do')
+#     parser.add_argument('--debug', dest='debug', action='store_true', help='debug (no crop, show lines)')
+#     parser.add_argument('--saveworkto', dest='saveworkto', required=True, help='Target Directory')
+#     parser.add_argument('--logfile', dest='logfile', required=True, help='Log file')
+#     parser.add_argument('--nofilm', dest='nofilm', default=False, action='store_true', help="no film")
+#     parser.add_argument('--res', dest='res', type=int, choices=range(len(res)), default=0, help='resolution select [0-{}]'.format(len(res)-1))
+#     parser.add_argument('--serdev', dest='serdev', default='/dev/ttyACM0', help='Serial device')
+#     return parser.parse_args()
 
 def pcl_tonefuse():
     parser = argparse.ArgumentParser()
     parser.add_argument(dest='do')
     parser.add_argument('--framesfrom', dest='framesfrom', required=True, help='Source Directory')
-    parser.add_argument('--framesto', dest='framesto', required=True, help='Target Directory')
+    parser.add_argument('--project', dest='project', required=True, help='Project Directory')
     parser.add_argument('--logfile', dest='logfile', default='usbcap.log', help='Log file')
     return parser.parse_args()
 
@@ -213,24 +213,26 @@ def init_framecap(config):
     # - U - ramp up 25
     # - x - return to main
     #message = f'kcv{lastTension}tl{config.optocount}ecE8000oCc500Ic2000ic25D25Ux'.encode()          
-    serwrite(b'c120t')
+    #serwrite(b'c120t')
+    serwrite(b'c')
     time.sleep(1.0)
-    message = f'Wcv{lastTension}tl'.encode()
+    #message = f'Wcv{lastTension}tl'.encode()
+    message = f'Wcvl'.encode()
     serwrite(message)
 
-def init_exptest(config):
-    pass
+# def init_exptest(config):
+#    pass
 
 def init_tonefuse(config):
     pass
 
 def get_most_recent_frame(config):
-    files = sorted(glob("{0}/????????.png".format(config.framesto)))
+    files = sorted(glob("{0}/capture/????????.png".format(config.project)))
     if len(files):
         frames =  [int(os.path.basename(os.path.splitext(f)[0])) for f in files]
         frame = 1+ sorted(frames)[::-1][0]
     else:
-        files = sorted(glob("{0}/????????_*.png".format(config.framesto)))
+        files = sorted(glob("{0}/capture/????????_*.png".format(config.project)))
         if len(files):
             return max([int(os.path.basename(f).split('_')[0]) for f in files])
         else:
@@ -271,7 +273,7 @@ def framecap(config):
 #    init_picam()
 
 
-    su = SprocketUtils(config, hires=False, saveworkto=config.saveworkto, logger=logger)
+    su = SprocketUtils(config, hires=False, logger=logger)
     for framenum in range(config.frames):
         global lastTension
         try:
@@ -280,7 +282,7 @@ def framecap(config):
             lastTension = tension[-1]
 
         logger.info(f'Tension {lastTension}')
-        serwrite(str(lastTension).encode() + b't')
+#        serwrite(str(lastTension).encode() + b't')
         setExposure(exposures[0])
         serwrite(b'f') # Forward
 
@@ -300,7 +302,7 @@ def framecap(config):
         frames = []
         for exp in exposures[1:]:
             try:
-                target = f'{config.framesto}/{startframe+framenum:>08}_{exp}.png'
+                target = f'{config.project}/capture/{startframe+framenum:>08}_{exp}.png'
                # setExposure(picam, exp)
                 setExposure(exp)
 
@@ -329,9 +331,9 @@ def tonefuse(config):
     merge_mertens = cv2.createMergeMertens()
     fusion = merge_mertens.process(images)
 
-    cv2.imwrite(f'{config.framesto}/fusion.png', fusion * 255)
-    cv2.imwrite(f'{config.framesto}/ldr.png', ldr * 255)
-    cv2.imwrite(f'{config.framesto}/hdr.png', hdr * 255)
+    cv2.imwrite(f'{config.project}/capture/fusion.png', fusion * 255)
+    cv2.imwrite(f'{config.project}/capture/ldr.png', ldr * 255)
+    cv2.imwrite(f'{config.project}/capture/hdr.png', hdr * 255)
 
     pass
 
@@ -350,10 +352,10 @@ def main():
         memlog.setLevel(logging.DEBUG)
         logger.addHandler(memlog)
         init_framecap(config)
-    elif 'exptest' == sys.argv[1]:
-        config = pcl_exptest()
-        logger = setLogging('picam_cap', config.logfile, logging.INFO)['logger']
-        init_exptest(config)
+#     elif 'exptest' == sys.argv[1]:
+#         config = pcl_exptest()
+#         logger = setLogging('picam_cap', config.logfile, logging.INFO)['logger']
+#         init_exptest(config)
     elif 'tonefuse' == sys.argv[1]:
         config = pcl_tonefuse()
         logger = setLogging('picam_cap', config.logfile, logging.INFO)['logger']

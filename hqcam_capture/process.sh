@@ -6,7 +6,8 @@
 # 3. 8mm or S8
 
 PORT=/dev/ttyACM0
-PROJECT=fm203
+PROJECT=fm229
+#FILM=super8
 FILM=8mm
 FRAMES=${PWD}/frames/
 FP=${FRAMES}/${PROJECT}
@@ -16,7 +17,8 @@ DEVICE=/dev/video0
 VIDEOSIZE=1280x720
 
 # Extended Dynamic Range
-EXPOSURES="12000,3000,5500,8000"
+#EXPOSURES="12000,3000,5500,8000"
+EXPOSURES="12000,5500,8000,10000"
 IFS=, read -ra EXPOSE <<<${EXPOSURES}
 EDR="--exposure ${EXPOSURES}"
 
@@ -31,11 +33,21 @@ DEBUG=''
 
 #exec > >(tee -a usb_${OP}_$(TZ= date +%Y%m%d%H%M%S).log) 2>&1
 #exec > >(tee -a process.log) 2>&1
+domount()
+{
+#    sudo mount.cifs //NAS-36-FE-22/imageinput /media/nas -o user=nobody,password=nobody,rw,file_mode=077r_mode=07777
+#    ln -s frames /media/nas/frames 
+    sudo mount /dev/sda1 /media/frames -o user=nobody,password=nobody,rw,file_mode=077,r_mode=07777
+    if [[ "$?" ]]; then
+        ln -s frames /media/frames 
+    fi
+}
 
-if [[ ! $(mount | grep '/media/frames') ]]; then
-	echo '*** SSD is not mounted'
-	exit 1
-fi
+#if [[ ! $(mount | grep '/media/frames') ]]; then
+#	echo '*** SSD is not mounted'
+#    domount
+#	exit 1
+#fi
 
 mkdir -p ${FP}
 
@@ -46,15 +58,34 @@ done
 
 writeconfig()
 {
-    if [[ ! -f "${FP}/config.toml" ]]; then
-    cat <<CFGEOF > ${FP}/config.toml
+    if [[  -f "${FP}/config.toml" ]]; then
+        return
+    fi
+    if [[ "8mm" == "${FILM}" ]]; then
+    cat <<CFG8MM > ${FP}/config.toml
 [capture]
+winy = 50
 winx = 50
+winw = 110
+winh = 60
 
 [car]
 yoffset = -32
 ysize = 1120
-CFGEOF
+CFG8MM
+
+    else
+    cat <<CFGSUPER8 > ${FP}/config.toml
+[capture]
+winx = 30
+winy = 206
+winw = 50
+winh = 100
+
+[car]
+yoffset = -32
+ysize = 1120
+CFGSUPER8
 
     fi
 }
@@ -64,25 +95,21 @@ getcamdev()
     echo "/dev/video4"
 }
 
-s8()
-{
-    ./picam_cap.py framecap --framesto ${FP}/capture --frames 3600 --logfile picam_cap.log \
-        --film super8 --exposure ${EXPOSURES} --startdia 57 --enddia 33 
-}
 
-mm8()
+capture()
 {
+#        --film 8mm --exposure ${EXPOSURES} --startdia 170 --enddia 33 \
     writeconfig
-    ./picam_cap.py framecap --framesto ${FP}/capture --frames 5000 --logfile picam_cap.log \
-        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33 \
-            --savework --saveworkto ${FP}/work
+    ./picam_cap.py framecap --project ${FP} --frames 500 --logfile picam_cap.log \
+        --film ${FILM} --exposure ${EXPOSURES} --startdia 60 --enddia 50  \
+            --savework --saveworkto ${FP}/work --saveallwork
 }
 
-sertest()
-{
-    ./usbcap.py --camindex $(getdev) --framesto ${FRAMES}  --frames 99999 --logfile usbcap.log \
-        --fastforward 12 --res 1 sertest --film super8 --optocount 6 
-}
+# sertest()
+# {
+#     ./usbcap.py --camindex $(getdev) --project ${FRAMES}  --frames 99999 --logfile usbcap.log \
+#         --fastforward 12 --res 1 sertest --film super8 --optocount 6 
+# }
 
 p2()
 {
@@ -130,17 +157,7 @@ ptf()
 
 getres()
 {
-    ./usbcap.py --camindex $(getdev) --framesto ${FP}  --frames 99999 --logfile usbcap.log --fastforward 9 --res 1 getres --film 8mm 
-}
-
-mount()
-{
-#    sudo mount.cifs //NAS-36-FE-22/imageinput /media/nas -o user=nobody,password=nobody,rw,file_mode=077r_mode=07777
-#    ln -s frames /media/nas/frames 
-    sudo mount /dev/sda1 /media/frames -o user=nobody,password=nobody,rw,file_mode=077r_mode=07777
-    if [[ "$?" ]]; then
-        ln -s frames /media/frames 
-    fi
+    ./usbcap.py --camindex $(getdev) --project ${FP}  --frames 99999 --logfile usbcap.log --fastforward 9 --res 1 getres --film 8mm 
 }
 
 descratch()
@@ -185,8 +202,8 @@ exptest()
     for ((f=1000;f<100000;f+=1000)); do
         EXPOSURES="${EXPOSURES},$f"
     done
-    ./picam_cap.py framecap --framesto ${FP}/capture --frames 10 --logfile picam_cap.log \
-        --film super8 --exposure ${EXPOSURES} --startdia 57 --enddia 33 
+    ./picam_cap.py framecap --project ${FP} --frames 10 --logfile picam_cap.log \
+        --film 8mm --exposure ${EXPOSURES} --startdia 57 --enddia 33 
 }
 
 tonefuse()
@@ -216,12 +233,12 @@ tonefuse()
 
 oneshot()
 {
-    ./usbcap.py oneshot --camindex $(getdev) --framesto ${FP} --logfile usbcap.log  --exposure 10000
+    ./usbcap.py oneshot --camindex $(getdev) --project ${FP} --logfile usbcap.log  --exposure 10000
 }
 
 cam()
 {
-    rpicam-hello --timeout=180s --shutter=9000us --awb 
+    rpicam-hello --timeout=180s --shutter=9000us 
 }
 
 doenfuse()
@@ -273,9 +290,10 @@ car()
 registration()
 {
     ./00_registration.py \
+        --project ${FP} \
         --readfrom ${FP}/capture/'????????'_${EXPOSE[2]}.png \
         --writeto ${FP}/capture \
-        --film ${FILM}  ${SAVEWORK} ${DEBUG}
+        --film ${FILM} #  ${SAVEWORK} ${DEBUG}
 }
 
 #setres()
@@ -285,8 +303,8 @@ registration()
 #. venv/bin/activate
 
 case "$1" in 
-    8mm) mm8; echo s > ${PORT} ;;
-    all) mm8
+    capture) capture; echo s > ${PORT} ;;
+    all) capture
         echo ' ' > ${PORT}
         registration
         car
@@ -313,7 +331,7 @@ case "$1" in
     getdev) getdev ;;
     getres) getres ;;
     mktf) ffmpeg -f image2 -r 18 -pattern_type glob -i "${FP}/fused/*.png" -c:v copy ${FP}/${FP}_fused.mkv ;;
-    mount) mount ;;
+    mount) domount ;;
     oneshot) oneshot ;;
     p2) shift; p2 $@ ;;
     pcar) pcar ;;
@@ -325,13 +343,12 @@ case "$1" in
     raw2img) ffmpeg -i ${FRAMES}/rawout_${VIDEOSIZE}.avi -vf fps=10 ${FRAMES}/frame%d.png ;;
     registration) registration ;;
     regsum) doregsum ;;
-    s8) s8; echo s > ${PORT} ;;
     screen) screen -L ${PORT} 115200 ;;
     sertest) sertest ;;
     startvlc) screen -dmS vlc vlc --intf qt --extraintf telnet --telnet-password abc ;;
     stream) ffmpeg -video_size 640x480 -rtbufsize 702000k -framerate 10 -i video="${DEVICE}" -threads 4 -vcodec libh264 -crf 0 -preset ultrafast -f mpegts "udp://pop-os:56666" ;;
     tf) tonefuse ;;
-    tsd) ./test_sprocket_detect.py framecap --useframes ${FP}/captured_video/'*.png' --film 8mm --framesto ${FP}/capture --logfile tsd.log ;;
+    tsd) ./test_sprocket_detect.py framecap --useframes ${FP}/captured_video/'*.png' --film 8mm --project ${FP} --logfile tsd.log ;;
     *) echo what?
 esac
 

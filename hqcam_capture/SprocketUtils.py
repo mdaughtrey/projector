@@ -35,27 +35,27 @@ class MockLogger:
         pass
 
 class SprocketUtils:
-    def __init__(self, config:dict, hires:bool, saveworkto:str=None, logger=MockLogger()):
-        if not config.film in ['s8','8mm']:
-            raise RuntimeError('Invalid film spec (s8/8mm)')
-        [setattr(self, name, getattr(config,name,None)) for name in ['film','savework','saveallwork']]
+    def __init__(self, config:dict, hires:bool, logger=MockLogger()):
+        if not config.film in ['super8','8mm']:
+            raise RuntimeError('Invalid film spec (super8/8mm)')
+        [setattr(self, name, getattr(config,name,None)) for name in ['project','film','savework','saveallwork']]
         self.logger = logger
         self.hires = hires
         self.savedwork = {}
-        self.saveworkto = saveworkto
         self.count = 0
-        if '8mm' == self.film:
-            if self.hires:
-                self.__findfunc = partial(SprocketUtils.__findSprocket8mm_contours,self)
-            else:
-                self.__findfunc = partial(SprocketUtils.__findSprocket8mm_window,self)
-#            self.mask = cv2.imread('/tmp/mask.png',cv2.IMREAD_GRAYSCALE)
-#            self.mask[self.mask == 255] = 1
+        if self.hires:
+            self.__findfunc = partial(SprocketUtils.__findSprocket_contours,self)
         else:
-            self.__findfunc = partial(SprocketUtils.__findSprocketS8,self)
+            self.__findfunc = partial(SprocketUtils.__findSprocket_window,self)
+        captureconf = self.__proctoml()['capture']
+#        captureconf = dict(captureconf.keys(), map(int, captureconf.values))
+        self.winX = captureconf['winx'] # int(self.__proctoml()['capture'].get('winx',50))
+        self.winY = captureconf['winy'] # int(self.__proctoml()['capture'].get('winx',50))
+        self.winW = captureconf['winw'] # int(self.__proctoml()['capture'].get('winw',110))
+        self.winH = captureconf['winh'] # int(self.__proctoml()['capture'].get('winw',110))
 
     def __proctoml(self) -> {}:
-        if not os.path.exists(tname := f'{os.path.dirname(self.saveworkto)}/config.toml'):
+        if not os.path.exists(tname := f'{self.project}/config.toml'):
             return {}
         with open(tname,'rb') as tfile:
             return tomllib.load(tfile)
@@ -63,32 +63,25 @@ class SprocketUtils:
 
     def __dumpSaved(self) -> None:
         for kk,vv in self.savedwork.items():
-            cv2.imwrite(f'{self.saveworkto}/{self.count}_{kk}.png', vv)
+            cv2.imwrite(f'{self.project}/work/{self.count}_{kk}.png', vv)
  
-    def __findSprocket8mm_window(self,image) -> None:
+    def __findSprocket_window(self,image) -> None:
         self.logger.debug(f'frame {self.count}')
         origy,origx = image.shape[:2]
         if self.saveallwork:
             self.savework = True
-
-        try:
-            winX = int(self.__proctoml()['capture']['winx'])
-            winW = int(self.__proctoml()['capture']['winw'])
-        except:
-            winX = 50
-            winW = 110
 
 
         if self.hires:
             xOffset = 350
             image = image[0:500, xOffset:550]
         else:
-            winY,winH = (20,60)
+            # winY,winH = (20,60)
             if self.savework:
                 self.savedwork['input'] = image.copy()
-                cv2.rectangle(self.savedwork['input'], (winX,winY),(winX+winW,winY+winH), (255,255,255),1)
+                cv2.rectangle(self.savedwork['input'], (self.winX,self.winY),(self.winX+self.winW,self.winY+self.winH), (255,255,255),1)
 #            cv2.rectangle(image, (winX+1,winY+1),(winX+winW,winY+winH), (0,0,0),1)
-            image = image[winY:winY+winH, winX:winX+winW]
+            image = image[self.winY:self.winY+self.winH, self.winX:self.winX+self.winW]
 
         if self.savework:
             self.savedwork['sliced'] = image.copy()
@@ -99,7 +92,7 @@ class SprocketUtils:
         if self.savework:
             self.savedwork['eroded'] = image3.copy()
 
-        self.logger.debug(str(image3[int(winH/2)]))
+        self.logger.debug(str(image3[int(self.winH/2)]))
         low, high = (235,255)
 
         self.logger.debug(f'low {low} high {high}')
@@ -113,12 +106,12 @@ class SprocketUtils:
         test = np.array_equal(image3,np.full_like(image3,255))
         self.logger.debug(f'test {test}')
         if test:
-            return (True,winX,winY,winW,winH)
+            return (True,self.winX,self.winY,self.winW,self.winH)
         else:
             return (False,0,0,0,0)
 
 
-    def __findSprocket8mm_contours(self,image) -> None:
+    def __findSprocket_contours(self,image) -> None:
         self.logger.debug(f'frame {self.count}')
         origy,origx = image.shape[:2]
         if self.saveallwork:
@@ -226,9 +219,6 @@ class SprocketUtils:
             self.__dumpSaved()
 
         return (True, x, y, w, h)
-
-    def __findSprocketS8(self) -> None:
-        pass
 
     def inccount(self) -> None:
         self.count += 1
