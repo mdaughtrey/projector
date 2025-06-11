@@ -100,7 +100,7 @@ capture()
 {
 #        --film 8mm --exposure ${EXPOSURES} --startdia 170 --enddia 33 \
     writeconfig
-    ./picam_cap.py framecap --project ${FP} --frames 500 --logfile picam_cap.log \
+    ./picam_cap.py framecap --project ${FP} --frames 50000 --logfile picam_cap.log \
         --film ${FILM} --exposure ${EXPOSURES} --startdia 60 --enddia 50  \
             --savework --saveworkto ${FP}/work --saveallwork
 }
