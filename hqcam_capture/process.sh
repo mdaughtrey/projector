@@ -6,7 +6,7 @@
 # 3. 8mm or S8
 
 PORT=/dev/ttyACM0
-PROJECT=fm229
+PROJECT=fm209
 #FILM=super8
 FILM=8mm
 FRAMES=${PWD}/frames/
@@ -18,7 +18,7 @@ VIDEOSIZE=1280x720
 
 # Extended Dynamic Range
 #EXPOSURES="12000,3000,5500,8000"
-EXPOSURES="12000,5500,8000,10000"
+EXPOSURES="12000,4000,8000,12000"
 IFS=, read -ra EXPOSE <<<${EXPOSURES}
 EDR="--exposure ${EXPOSURES}"
 
@@ -100,7 +100,7 @@ capture()
 {
 #        --film 8mm --exposure ${EXPOSURES} --startdia 170 --enddia 33 \
     writeconfig
-    ./picam_cap.py framecap --project ${FP} --frames 50000 --logfile picam_cap.log \
+    ./picam_cap.py framecap --project ${FP} --frames 3500 --logfile picam_cap.log \
         --film ${FILM} --exposure ${EXPOSURES} --startdia 60 --enddia 50  \
             --savework --saveworkto ${FP}/work --saveallwork
 }
