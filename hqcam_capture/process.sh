@@ -6,7 +6,7 @@
 # 3. 8mm or S8
 
 PORT=/dev/ttyACM0
-PROJECT=fm209
+PROJECT="fm229 Matt 13 Months"
 #FILM=super8
 FILM=8mm
 FRAMES=${PWD}/frames/
@@ -72,6 +72,8 @@ winh = 60
 [car]
 yoffset = -32
 ysize = 1120
+xoffset = 330
+xsize  = 450
 CFG8MM
 
     else
@@ -209,14 +211,19 @@ exptest()
 tonefuse()
 {
     let outputnum=0
-    for file in ${FP}/car/????????_${EXPOSE[1]}.png; do
-        base=$(dirname $file)
-        name=$(basename $file)
+    echo $FP is  $FP
+    for file in ${FP}/car/????????_${EXPOSE[0]}.png; do
+        echo file is $file
+        base=$(dirname "'"$file"'")
+        echo base is $base
+        name=$(basename "'"$file"'")
+        echo $name is $name
+        continue
         number=$(echo $name | cut -d_ -f1)
-        input="${FP}/car/${number}_${EXPOSE[1]}.png ${FP}/car/${number}_${EXPOSE[2]}.png ${FP}/car/${number}_${EXPOSE[3]}.png"  
-        output=${FP}/fused/$(printf '%08u' $outputnum).png
+        input="${FP}/car/${number}_${EXPOSE[1]}.png" "${FP}/car/${number}_${EXPOSE[2]}.png" "${FP}/car/${number}_${EXPOSE[3]}.png"  
+        output="${FP}/fused/$(printf '%08u' $outputnum).png"
 	if [[ ! -f "$output" ]]; then
-	        enfuse --output $output $input
+echo	        enfuse --output $output $input
 	fi
         ((outputnum++))
     done
@@ -283,16 +290,21 @@ capturevid()
 
 car()
 {
-    ./01_crop_and_rotate.py --readfrom ${FP}/capture/'????????_'${EXPOSE[2]}'.reg' --writeto ${FP}/car --exp ${EXPOSURES} --film ${FILM}
+    echo ./01_crop_and_rotate.py --readfrom "${FP}/capture/????????_${EXPOSE[2]}.reg" --writeto "${FP}/car" --exp ${EXPOSURES} --film ${FILM}
+    ./01_crop_and_rotate.py \
+        --readfrom "${FP}/capture/????????_${EXPOSE[2]}.reg" \
+        --writeto "${FP}/car" \
+        --exp ${EXPOSURES} \
+        --film ${FILM}
 }
 
 
 registration()
 {
-    ./00_registration.py \
-        --project ${FP} \
-        --readfrom ${FP}/capture/'????????'_${EXPOSE[2]}.png \
-        --writeto ${FP}/capture \
+    echo ./00_registration.py \
+        --project "'"${FP}"'" \
+        --readfrom "'"${FP}/capture/'????????'_${EXPOSE[2]}.png"'" \
+        --writeto "'"${FP}/capture"'" \
         --film ${FILM} #  ${SAVEWORK} ${DEBUG}
 }
 

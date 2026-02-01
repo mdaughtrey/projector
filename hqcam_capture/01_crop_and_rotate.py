@@ -29,8 +29,8 @@ def procargs():
     parser.add_argument('--exposures', dest='exposures', help='exposures', required=True)
     parser.add_argument('--film', dest='film', choices=['super8','8mm'], help='8mm/super8', required=True)
     parser.add_argument('--debugpy', dest='debugpy', action='store_true', help='enable debugpy')
-    parser.add_argument('--yoffset', dest='yoffset', type=int, default=0)
-    parser.add_argument('--ysize', dest='ysize', type=int, default=1080)
+#    parser.add_argument('--yoffset', dest='yoffset', type=int, default=0)
+#    parser.add_argument('--ysize', dest='ysize', type=int, default=1080)
     return parser.parse_args()
 
 def proctoml():
@@ -51,7 +51,10 @@ def getRectS8(leftX, centerY):
     return boxLeft,boxRight,boxTop,boxBot
 
 def getRect8mm(centerY):
-    return (450,2100,centerY+args.yoffset,centerY+args.yoffset+args.ysize)
+    return (args.xoffset,
+            args.xoffset+args.xsize,
+            centerY+args.yoffset,
+            centerY+args.yoffset+args.ysize)
 #    boxLeft = int(leftX) + 180
 #    boxRight = boxLeft + 1520
 #    boxTop = int(centerY) - 160
@@ -118,7 +121,7 @@ async def main():
         logger.info(f'Creating directory {writepath}')
         os.mkdir(writepath)
 
-    wq = WorkerQueue()
+    wq = WorkerQueue(worker_count=16)
     exposures = [int(x) for x in args.exposures.split(',')]
     for regfile in sorted(glob(readpath)):
         centerY = int(open(regfile.encode(),'rb').read().strip())
@@ -138,6 +141,8 @@ async def main():
 #                    cropAndRotate(centerY, readfrom, writeto)
                 except Exception as ee:
                     logger.warning(f'Skipping {writeto}: {str(ee)}')
+            while wq.running_task_count > 0:
+                await asyncio.sleep(0.1)
             
     while wq.running_task_count > 0:
         await asyncio.sleep(0.1)
