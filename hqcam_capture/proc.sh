@@ -3,6 +3,7 @@
 # Bash script to invoke functions in the Python script using case
 
 PYTHON_SCRIPT="process.py"
+PROJECT=fm104
 
 # Check if the Python script exists
 if [[ ! -f "$PYTHON_SCRIPT" ]]; then
@@ -12,7 +13,7 @@ fi
 
 # Function to run the Python script with a given command
 run_python() {
-    poetry run python "$PYTHON_SCRIPT" "$1"
+    poetry run python "$PYTHON_SCRIPT" "$1" "$PROJECT"
 }
 
 # Case statement to invoke each function in the Python script
@@ -84,6 +85,9 @@ case "$1" in
         ;;
     ptf)
         run_python "ptf"
+        ;;
+    registration)
+        run_python "registration"
         ;;
     regsum)
         run_python "regsum"
